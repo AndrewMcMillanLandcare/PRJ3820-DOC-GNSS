@@ -1,0 +1,174 @@
+---
+title: "PRJ3820-create-lit-rev-acc-smy"
+output: html_document
+date: "2023-09-27"
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r cars}
+
+library(tidyverse)
+library(readxl)
+library(plotly)
+
+
+root_dn = "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/"
+plotdir = paste0(root_dn, "plots/")
+
+```
+
+## read the excel file
+
+
+
+```{r pressure, echo=FALSE}
+
+
+dn = "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/Analysis/"
+fn = "GNSS-Lit-Review.xlsx"
+ffn = paste0(dn,fn)
+
+
+
+AccTab_Data = readxl::read_excel(ffn, sheet = "Accuracy Table", "B1:S100")
+
+AccTab_Data_ffn = paste0(dn, "AccTab_Data.RDS" )
+saveRDS(AccTab_Data, AccTab_Data_ffn)
+
+
+
+```
+
+
+read the binary version of the Accuracy Table data
+
+```{r}
+
+dn = "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/Analysis/"
+AccTab_Data_ffn = paste0(dn, "AccTab_Data.RDS" )
+
+AccTab_Data = readRDS(AccTab_Data_ffn)
+
+AccTab_Data_mdf = AccTab_Data %>% 
+  arrange(acc_avg) %>% 
+  mutate(idx = 1:nrow(.)) %>% 
+  select(idx, acc_avg, Ref,occ_tm = `Occupation time`, rec = `Receiver Make/Model` ) %>% 
+  filter(!is.na(Ref))
+  
+
+
+```
+
+
+
+
+# ~~~~~~~~~~~~~~~~ #
+# Figure 1001 - GNSS positioning accuracy plot
+# ~~~~~~~~~~~~~~~~ #
+
+```{r}
+
+fignum = 1001
+figdesc = "GNSS positioning accuracy plot"
+figfmt = "png"
+fig_ffn = paste0(plotdir, fignum,"-", figdesc, ".", figfmt)
+
+
+g = ggplot(AccTab_Data_mdf) + geom_point(aes(acc_avg, idx, color = Ref, size = occ_tm), alpha=0.5) + scale_x_reverse()
+g = g + labs(x = "accuracy (RMSE) [m]", y = "", size = "Occupation time [min]", color = "Reference")
+g = g + lims(x = c(20, 0), y = c(0,60))
+g = g + theme_minimal()
+g = g + theme(axis.text.y = element_blank())
+g
+
+
+ggsave(filename = fig_ffn, plot = g, width = 16, height = 18, units = "cm", bg = "white")
+
+ggplotly(g)
+
+```
+
+
+
+
+
+# ~~~~~~~~~~~~~~~~ #
+# Figure 1002 - GNSS positioning accuracy plot
+# ~~~~~~~~~~~~~~~~ #
+
+```{r}
+
+fignum = 1002
+figdesc = "GNSS positioning accuracy plot - zoomin"
+figfmt = "png"
+fig_ffn = paste0(plotdir, fignum,"-", figdesc, ".", figfmt)
+
+
+AccTab_Data_mdf2 = AccTab_Data_mdf %>% filter(acc_avg<2.0 & !is.na(occ_tm))
+
+
+g = ggplot(AccTab_Data_mdf2, aes(acc_avg, idx, color = rec, size = occ_tm)) + 
+  geom_point(alpha=0.5) 
+g
+
+g = g + scale_x_reverse()
+
+g = g + labs(x = "accuracy (RMSE)", y = "", size = "Occupation time (min)", color = "Receiver Type")
+g = g + lims(x = c(2.0, 0), y = c(0,30))
+g = g + geom_vline(aes(xintercept=1), linetype = "dashed")
+g = g + theme_minimal()
+g = g + theme(axis.text.y = element_blank(), legend.position = "right")
+g
+
+
+ggsave(filename = fig_ffn, plot = g, width = 16, height = 16, units = "cm", bg = "white")
+
+ggplotly(g)
+
+```
+
+
+
+# ~~~~~~~~~~~~~~~~ #
+# Figure 1003 - GNSS positioning accuracy plot
+# ~~~~~~~~~~~~~~~~ #
+
+```{r}
+
+fignum = 1003
+figdesc = "GNSS positioning accuracy plot by ref - zoomin"
+figfmt = "png"
+fig_ffn = paste0(plotdir, fignum,"-", figdesc, ".", figfmt)
+
+
+AccTab_Data_mdf2 = AccTab_Data_mdf %>% filter(acc_avg<2.0 & !is.na(occ_tm))
+
+
+g = ggplot(AccTab_Data_mdf2, aes(acc_avg, idx, color = Ref, size = occ_tm)) + 
+  geom_point(alpha=0.5) 
+g
+
+g = g + scale_x_reverse()
+
+g = g + labs(x = "accuracy (RMSE)", y = "", size = "Occupation time (min)", color = "Reference")
+g = g + lims(x = c(2.0, 0), y = c(0,30))
+g = g + geom_vline(aes(xintercept=1), linetype = "dashed")
+g = g + theme_minimal()
+g = g + theme(axis.text.y = element_blank(), legend.position = "right")
+g
+
+
+ggsave(filename = fig_ffn, plot = g, width = 16, height = 16, units = "cm", bg = "white")
+
+ggplotly(g)
+
+```
+
+
+

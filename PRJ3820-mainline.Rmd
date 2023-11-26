@@ -1,0 +1,695 @@
+
+---
+title: "CycloneDamageAssessment-MainLine"
+output: html_notebook
+editor_options: 
+  chunk_output_type: console
+---
+
+
+
+# Libraries and folders
+# Settings, palletes, orders and include-lists
+
+```{r}
+
+library(raster)
+library(exactextractr)
+library(fasterize)
+
+source("C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/Code/R/PRJ3820-DOC-GNSS/GNSS_utils.R")
+
+
+
+proj_dn = "PRJ3820-DOC-GNSS/"
+
+
+# identify the computer (and OS)
+Current_PC <- Sys.info()["nodename"]
+
+if (Current_PC == "EANZ-DT01-Linux") {
+  root = paste0("C:/Users/McMillanAn/OneDrive - MWLR/Projects/",proj_dn)
+  ncore_rec = 15
+} else if (Current_PC == "EANZ-DT01") {
+  root = paste0("C:/Users/McMillanAn/OneDrive - MWLR/Projects/", proj_dn)
+  ncore_rec = 15
+  
+} else if (Current_PC == "styx") {
+  root = paste0("/mnt/data/mcmillana/",proj_dn)
+  ncore_rec = 64
+} else if (Current_PC == "L-8P30JW3") {
+  root = paste0("C:/Users/McMillanAn/OneDrive - MWLR/Projects/", proj_dn)
+  ncore_rec = 18
+} else {
+  root = paste0("C:/Users/McMillanAn/OneDrive - MWLR/Projects/", proj_dn)
+  ncore_rec = 15
+}
+
+
+datadir = paste0(root, "data/")
+plotdir = paste0(root, "plots/")
+
+
+
+Current_PC <- Sys.info()["nodename"]
+
+
+
+util_script = paste0("C:/Users/McMillanAn/OneDrive - MWLR/Code/R/utils/", "mcm_sp_utils.R")
+source(util_script)
+
+
+
+
+
+```
+
+
+# Load data
+
+```{r}
+
+
+LCDB = ea_load("LCDB")
+
+GeodMkrs = st_read("C:/Users/McMillanAn/OneDrive - MWLR/NZ-Geospatial-Data/lds-nz-geodetic-marks-SHP/nz-geodetic-marks.shp")
+
+RC = ea_load("RC")
+
+LUCAS_PLOTS = st_read("C:/Users/McMillanAn/OneDrive - MWLR/NZ-Geospatial-Data/LUCAS-Plots/LucasPlots.shp")
+
+roads = st_read("C:/Users/McMillanAn/OneDrive - MWLR/NZ-Geospatial-Data/lds-nz-road-centrelines-topo-150k-SHP/nz-road-centrelines-topo-150k.shp")
+
+
+
+```
+
+# Look only in RCs of interest
+
+```{r}
+
+RCofInt = RC %>% filter(REGC2022_1 == "Manawatū-Whanganui Region" | REGC2022_1 == "Wellington Region")
+
+RCofInt = RC %>% filter(REGC2022_1 == "Wellington Region")
+
+
+
+mapview(RCofInt)
+
+```
+
+# Overlay with Indig Forest
+
+```{r}
+
+IF_in_RCofInt_ffn = paste0(datadir, "IF_in_RCofInt.gpkg")
+
+if (recreate_IF_in_RCofInt){
+  
+  LCDB %>% select(Name_2018, Class_2018) %>% st_set_geometry(NULL) %>% distinct()
+  IndigForest = LCDB %>% filter( Class_2018 == 54 | Class_2018 == 69)
+  IF_in_RCofInt = st_intersection(IndigForest, RCofInt)
+  
+  st_write(IF_in_RCofInt, IF_in_RCofInt_ffn, append = F)
+  
+}else{
+  IF_in_RCofInt = st_read(IF_in_RCofInt_ffn)
+}
+
+mapview(IF_in_RCofInt)
+
+```
+
+Find Geodetic Markers that fit the following conditions
+
+1. Are less than D1 (say 500m) from boundary of forest
+2. Are less than D2 (say 200m) from road
+
+```{r}
+
+#reduce markers just to RC_ofI
+
+
+D1 = 250
+D2 = 250
+
+
+CRS_2193 = st_crs(LCDB)
+GeodMkrs_2193 = st_transform(GeodMkrs,CRS_2193 )
+roads_2193 = st_transform(roads,CRS_2193 )
+
+mapview(roads_2193)
+
+GM_RC = st_intersection(GeodMkrs_2193, RCofInt) %>% 
+  filter(order<6)
+
+
+
+
+roads_RC = st_intersection(roads_2193, RCofInt)
+mapview(roads_RC)
+
+
+#markers close to forest
+
+GM_RC_buffer_D1 = st_buffer(GM_RC, D1)
+GM_RC_near_forest_itx = st_intersects(GM_RC_buffer_D1, IF_in_RCofInt)
+GM_RC_near_forest_ix = which(lengths(GM_RC_near_forest_itx )>0)
+GM_RC_near_forest = GM_RC_buffer_D1[GM_RC_near_forest_ix,]
+
+A = mapview(GM_RC_near_forest, col_region = "blue")
+B = mapview(IF_in_RCofInt, col_region = "pink")
+
+A + B
+#makers close to road
+
+GM_RC_buffer_D2 = st_buffer(GM_RC, D2)
+GM_RC_near_road_itx = st_intersects(roads_RC,GM_RC_buffer_D2 )
+GM_RC_near_road_ix = which(lengths(GM_RC_near_road_itx )>0)
+GM_RC_near_road = GM_RC_buffer_D2[GM_RC_near_road_ix,]
+
+
+near_road_and_forest_ix = intersect(GM_RC_near_forest_ix, GM_RC_near_road_ix)
+
+GM_RC_near_road_and_forest = GM_RC_buffer_D2[near_road_and_forest_ix,]
+
+mapview(GM_RC)
+
+A = mapview(GM_RC_near_road, col.regions = "pink")
+B = mapview(GM_RC_near_forest, col.regions = "grey")
+C = mapview(GM_RC_near_road_and_forest, col.regions = "blue")
+
+A + B + C
+
+
+
+LUCAS_PLOTS_RC = st_intersection(LUCAS_PLOTS, RCofInt)
+LUCAS_PLOTS_RC_buffer = st_buffer(LUCAS_PLOTS_RC,1000)
+
+LUCAS_GM_RC_near_road_and_forest = st_intersection(LUCAS_PLOTS_RC_buffer,GM_RC_near_road_and_forest )
+
+mapview(LUCAS_GM_RC_near_road_and_forest)
+
+PO = ea_load("PO")
+
+```
+
+
+# Convert coords from CSRS-PPP output into NZTM2000
+
+the units are in ITRF20(2023.8). epsg.io says that this CRS has an EPSG code of 9988
+it says this crs replaces ITRF2014 (CRS code of 7789)
+The Ellipsoid is GRS 1980
+
+
+```{r}
+
+library(sf)
+library(tidyverse)
+
+lat_dms = c(-40,20,10.56868)
+lon_dms = c(175,48,45.45619)
+
+
+dms2dd = function(ll_dms){
+  
+  ll_dd =  (abs(ll_dms[1]) + ll_dms[2]/60 + ll_dms[3]/3600) * sign(ll_dms[1])
+  return(ll_dd)
+}
+
+
+# print(formatC(dms2dd(lat_dms), digits = 10))
+
+ell_ht = 116.642
+
+#create a point
+
+LAT_9988 = dms2dd(lat_dms)
+LON_9988 = dms2dd(lon_dms)
+
+POS_DF = data.frame(lat = LAT_9988, lon = LON_9988) %>% as_tibble()
+
+POS_DF_ffn = "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/data/Field-Test-Ballance-20231030/EmlidReachRS2/CSRS-PPP/POS_DF.csv"
+
+write_csv(POS_DF, POS_DF_ffn)
+dir.exists( "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/data/Field-Test-Ballance-20231030/EmlidReachRS2/CSRS-PPP"
+)
+
+
+x = st_as_sf(POS_DF, coords = c("lat","lon"))
+
+
+
+library(sp)
+proj4string(x) <- CRS("+init=epsg:4326")
+
+
+
+
+
+BAL_CBRX7_P1_LAT_DMS = c(-40, 20, 10.2156)
+BAL_CBRX7_P1_LON_DMS = c(175, 48, 44.9934)
+BAL_CBRX7_P1_EHT = 121.173
+
+BAL_CBRX7_P1_LAT_DD = dms2dd(BAL_CBRX7_P1_LAT_DMS)
+BAL_CBRX7_P1_LON_DD = dms2dd(BAL_CBRX7_P1_LON_DMS)
+
+make_sf = function(lat, lon, crs, sf_type = "POINT"){
+  
+  tb = data.frame(lat = lat, lon = lon)
+  
+  sf = st_as_sf(tb, coords = c("lon", "lat"), crs = crs) %>% 
+    st_cast(sf_type)
+  
+  
+}
+
+
+
+
+
+
+```
+
+TOPCON Placed on P9
+
+
+```{r}
+
+
+LAT = 5466302.691
+LON = 329664.409
+
+POPAV_p9_TOPCON_SCRS = make_sf(LAT, LON, "epsg:32760")
+
+POPAV_p9_TOPCON_SCRS_2193 = POPAV_p9_TOPCON_SCRS %>% st_transform("epsg:2193")
+
+sprintf("%9.6f",st_coordinates(POPAV_p9_TOPCON_SCRS_2193)
+)
+
+```
+
+
+# Read a CSRS-PPP output file
+
+```{r}
+
+ffn = "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/data/Field-Test-Ballance-20231108/JVD/SOLUTIONS/CSRS-PPP/InitialAttempt-Occ1/BALOCC1P6_v2.pos"
+
+D = read.delim(ffn, sep = "", skip=5) %>% as_tibble() %>% 
+  mutate(
+    DATETIME = paste(YEAR.MM.DD, HR.MN.SS.SS),
+    PX = as.POSIXct(DATETIME, format = "%Y-%m-%d %H:%M:%S.%OS", tz = "UTC"),
+    LAT_DECDEG = sign(LATDD)*(abs(LATDD) + LATMN/60 + LATSS/3600),
+    LON_DECDEG = sign(LONDD)*(abs(LONDD) + LONMN/60 + LONSS/3600),
+    minutes_elap = (as.numeric(PX)-as.numeric(PX[1]))/60)
+
+D_sf = st_as_sf(D, coords = c("LON_DECDEG","LAT_DECDEG" ), crs = 4326)
+
+mapview(D_sf)
+
+D_sf_2193 = D_sf %>% st_transform(D_sf, crs = 2193)
+
+NZTM_coords = st_coordinates(D_sf_2193) %>% as_tibble()
+
+D = D %>% mutate(EASTING = NZTM_coords$X, NORTHING = NZTM_coords$Y)
+
+names(D)
+
+g = ggplot(D, aes(PX, NSV)) + geom_point()
+g
+
+
+g = ggplot(D, aes(PX, GDOP)) + geom_point()
+g
+
+
+g = ggplot(D, aes(PX, SDLAT.95..)) + geom_point()
+g
+
+g = ggplot(D, aes(PX, SDLON.95..)) + geom_point()
+g
+
+g = ggplot(D, aes(EASTING, NORTHING)) + geom_point(aes(color = minutes_elap))
+g
+
+
+ggplotly(g)
+
+
+
+
+
+
+g = ggplot(D %>% filter(minutes_elap>60), aes(EASTING, NORTHING)) + geom_point(aes(color = minutes_elap))
+g
+
+
+ggplotly(g)
+
+
+
+
+
+```
+
+# Read the prelminary Total Station Data (total station data will be remeasured on 15/11/23)
+
+```{r}
+
+
+
+TS_data_ffn =  "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/data/Preliminary TS Points.shp/Preliminary TS Points.shp/Points.shp"
+TS_data = st_read(TS_data_ffn)
+
+TS_data_nogeo = TS_data %>% st_set_geometry(NULL)
+TS_data_coords = st_coordinates(TS_data)
+
+TS_data_df = TS_data_nogeo %>% bind_cols(TS_data_coords)
+TS_data_df_ffn =  "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/data/TS_truth_points_prelim.csv"
+write_csv(TS_data_df, TS_data_df_ffn)
+
+
+
+```
+
+
+# Convert the for the CSRS SolutionsWGS84 UTM Z60 to NZTM
+```{r}
+
+
+
+CSRS_Solutions_ffn =  "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/data/GNSS_DATA_COLLATED.csv"
+
+CSRS_Solutions =  read_csv(CSRS_Solutions_ffn, skip = 5)
+names(CSRS_Solutions)
+
+CSRS_Solutions_coords_2193 = CSRS_Solutions %>% 
+  filter(!is.na(CSRS_UTM_X)) %>% 
+  st_as_sf(coords = c("CSRS_UTM_X", "CSRS_UTM_Y"), crs = 32760) %>% 
+  st_transform(crs = 2193) %>% 
+  st_coordinates() %>% 
+  as_tibble()
+
+CSRS_Solutions_2193_ffn = "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/data/CSRS_2193.csv"
+write_csv(CSRS_Solutions_coords_2193, CSRS_Solutions_2193_ffn)
+
+```
+
+
+
+```{r}
+
+library(readxl)
+
+xl_ffn = "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/data/GNSS_DATA_COLLATED.xlsx"
+xl_page = "BAL-FIELD-TEST-231108"
+xl_rng = "A6:AO24"
+
+D = readxl::read_excel(xl_ffn, sheet = xl_page, range = xl_rng)
+
+D_mdf = D %>% 
+  filter(!is.na(OCC_CODE)) %>% 
+  select(OCC_CODE, contains("KNOWN"), contains("CSRS_UTM_"), CSRS_ELL_HT ) 
+
+
+D_mdf_sf_2193_coords = D_mdf %>% 
+  st_as_sf(coords = c("CSRS_UTM_X", "CSRS_UTM_Y"), crs = 32760) %>% 
+  st_transform(crs = 2193) %>% 
+  st_coordinates() %>% 
+  as_tibble()
+
+D_mdf = D_mdf %>% 
+  mutate(
+    NZTM_X = D_mdf_sf_2193_coords$X,
+    NZTM_Y = D_mdf_sf_2193_coords$Y
+  )
+
+
+TRUTH_SF = D_mdf[1:5,] %>% 
+  st_as_sf(coords = c("PEG_KNOWN_X", "PEG_KNOWN_Y"), crs = 2193) %>% 
+  mutate(pegname = str_extract(OCC_CODE, "PEG\\d{1}$"))
+
+
+CSRS_TRUTH_SF_ffn = "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/data/CSRS_TRUTH_FINAL_SF.gpkg"
+st_write(TRUTH_SF, CSRS_TRUTH_SF_ffn, append = F)
+
+MEAS_SF =  D_mdf %>% 
+  st_as_sf(coords = c("NZTM_X", "NZTM_Y"), crs = 2193) %>% 
+  select(OCC_CODE)
+
+CSRS_MEAS_SF_ffn = "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/data/CSRS_MEAS_SF.gpkg"
+
+st_write(MEAS_SF, CSRS_MEAS_SF_ffn, append = F)
+
+
+
+library(leaflet)
+
+
+A = mapview(TRUTH_SF, col.region = "white",color = "blue") %>% 
+  addStaticLabels(label = TRUTH_SF$pegname,
+                  noHide = TRUE,
+                  direction = 'top',
+                  textOnly = TRUE,
+                  textsize = "20px")
+
+
+B = mapview(MEAS_SF, col.region = "yellow", color = "red")
+
+A+B
+
+```
+
+
+# GNSS POS READER
+
+```{r}
+
+
+
+
+#read the peg psoitions
+
+KnownPegPositions_binary_ffn = "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/data/KnownPegPositions.RDS"
+
+if (reread_excel){
+  KnownPegPositions = read_excel("C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/data/GNSS_DATA_COLLATED.xlsx", sheet = "PEGS-KNOWN-POSITIONS-FINAL", range =  "B4:I12") %>% 
+    dplyr::select(Peg, EASTING, NORTHING, ELEVATION)
+  
+  
+  saveRDS(KnownPegPositions, KnownPegPositions_binary_ffn)
+  
+  
+}else{
+  KnownPegPositions = readRDS(KnownPegPositions_binary_ffn)
+}
+
+
+
+known_loc= known_loc_P4
+
+
+
+POS_ffn = "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/data/Field-Test-Ballance-20231108/JVD/SOLUTIONS/OCC1-PPK-R10BASE/BALOCC1P6_BY_SCRIPT_csv.pos"
+
+POS_ffn = "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/data/Field-Test-Ballance-20231108/BAL_OCC1_JVD_RTKR10_FULL.pos"
+
+POS_ffn = "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/data/Field-Test-Ballance-20231108/BAL_OCC2_CAR_PPK_DNVK_FULL.pos"
+
+POS_ffn = "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/data/Field-Test-Ballance-20231108/BAL_OCC1_CAR_RTKR10_FULL.pos"
+
+POS_ffn = "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/data/Field-Test-Ballance-20231108/BAL_OCC1_CAR_RTKR10_FULL_FB.pos"
+
+POS_ffn = "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/data/Field-Test-Ballance-20231108/BAL_OCC1_CAR_RTKR10_30MIN.pos"
+
+POS_ffn = "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/data/Field-Test-Ballance-20231108/BAL_OCC1_CAR_RTKR10_05MIN.pos"
+
+POS_ffn = "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/data/Field-Test-Ballance-20231108/BAL_OCC1_CAR_RTKR10_FULL.pos"
+
+POS_ffn = "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/data/Field-Test-Ballance-20231108/BAL_OCC1_CAR_RTKR10_LAST_HOUR.pos"
+
+POS_ffn = "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/data/Field-Test-Ballance-20231108/BAL_OCC1_CAR_RTKR10_60MIN.pos"
+
+POS_ffn = "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/data/Field-Test-Ballance-20231108/BAL_OCC1_CAR_RTKR10_120MIN.pos"
+
+
+POS_ffn = "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/data/Field-Test-Ballance-20231108/BAL_OCC1_JVD_RTKR10_FULL.pos"
+
+analyze_POS("JVD", OCC=1, PEG=6, PERIOD="240 MIN", POS_ffn )
+
+POS_ffn = "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/data/Field-Test-Ballance-20231108/BAL_OCC1_JVD_RTKR10_5MIN.pos"
+
+analyze_POS("JVD", OCC=1, PEG=6, PERIOD="5 MIN", POS_ffn )
+
+POS_ffn = "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/data/Field-Test-Ballance-20231108/BAL_OCC1_JVD_RTKR10_10MIN.pos"
+
+analyze_POS("JVD", OCC=1, PEG=6, PERIOD="10 MIN", POS_ffn )
+
+POS_ffn = "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/data/Field-Test-Ballance-20231108/BAL_OCC1_JVD_RTKR10_30MIN.pos"
+
+analyze_POS("JVD", OCC=1, PEG=6, PERIOD="30 MIN", POS_ffn )
+
+POS_ffn = "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/data/Field-Test-Ballance-20231108/BAL_OCC1_JVD_RTKR10_60MIN.pos"
+
+analyze_POS("JVD", OCC=1, PEG=6, PERIOD="60 MIN", POS_ffn )
+
+POS_ffn = "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/data/Field-Test-Ballance-20231108/BAL_OCC1_JVD_RTKR10_120MIN.pos"
+
+analyze_POS("JVD", OCC=1, PEG=6, PERIOD="120 MIN", POS_ffn )
+
+POS_ffn = "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/data/Field-Test-Ballance-20231108/BAL_OCC1_TOP_RTKR10_FULL.pos"
+
+analyze_POS("TOP", OCC=1, PEG=5, PERIOD="240 MIN", POS_ffn, plotdim=18)
+
+
+POS_ffn = "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/data/Field-Test-Ballance-20231108/BAL_OCC2_TOP_RTKR10_FULL.pos"
+
+analyze_POS("TOP", OCC=2, PEG=8, PERIOD="60 MIN", POS_ffn, plotdim=50 )
+
+# POS_ffn = "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/data/Field-Test-Ballance-20231108/balo3120.pos"
+# 
+# analyze_POS("TOP", OCC=2, PEG=8, PERIOD="60 MIN", POS_ffn, limax=T )
+
+
+POS_ffn = "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/data/Field-Test-Ballance-20231108/BAL_OCC1_R10ROVER_RTKR10_FULL.pos"
+
+analyze_POS("R10-ROVER", OCC=1, PEG=8, PERIOD="240 MIN", POS_ffn, limax=T )
+
+POS_ffn = "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/data/Field-Test-Ballance-20231108/BAL_OCC1_R10ROVER_RTKR10_FULL.pos"
+
+analyze_POS("R10-ROVER", OCC=1, PEG=8, PERIOD="240 MIN", POS_ffn, plotdim = 3, tm_win = c(120,180) )
+
+
+
+POS_ffn = "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/data/Field-Test-Ballance-20231108/BAL_OCC2_R10ROVER_RTKR10_FULL.pos"
+
+analyze_POS("R10-ROVER", OCC=2, PEG=5, PERIOD="FULL", POS_ffn, limax=T, plotdim=9 )
+
+
+POS_ffn = "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/data/Field-Test-Ballance-20231108/JVD/SOLUTIONS/BALOCC1P6_v2.pos"
+analyze_POS("JVD", OCC=1, PEG=6, PERIOD="FULL", POS_ffn, limax=T, plotdim=9 )
+
+
+
+
+
+POS_ffn = "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/data/Field-Test-Ballance-20231108/SDL_004.obs"
+
+analyze_POS("R10-ROVER", OCC=1, PEG=8, PERIOD="240 MIN", POS_ffn, plotdim = 3, tm_win = c(120,180) )
+
+
+
+
+
+
+```
+
+
+# issue a rnx2rtkp command
+
+```{r}
+
+cmd = "wsl rnx2rtkp -o BAL_OCC1_CAR_RTKR10_FULL_FB.pos -p 3 -f 3 -s ',' -c CAR/BAL-CAR-OCC1-P4-RINEX/BAL_OCC1_P4.23o R10-Base/RINEX211/01393111.23o R10-Base/RINEX211/01393111.23n"
+
+datadir = "/mnt/c/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/data/Field-Test-Ballance-20231108/"
+
+rover_fn = "CAR/BAL-CAR-OCC1-P4-RINEX/BAL_OCC1_P4.23o"
+rover_ffn = paste0(datadir, rover_fn)
+
+base_obs_fn = "R10-Base/RINEX211/01393111.23o"
+base_obs_ffn = paste0(datadir, base_obs_fn)
+
+base_nav_fn = "R10-Base/RINEX211/01393111.23n"
+base_nav_ffn = paste0(datadir, base_nav_fn)
+
+
+
+
+cmd = paste0("wsl rnx2rtkp -o BAL_OCC1_CAR_RTKR10_10MIN_from_R.pos -p 3 -f 3 -s \",\" -c ", "2023/11/7 21:25:12 -te 2023/11/7 21:35:12 ", "\"", rover_ffn, "\"", " ", "\"", base_obs_ffn, "\"", " ", "\"", base_nav_ffn, "\"")
+
+print(cmd)
+
+
+cmd = paste0("wsl ls ", "\"", datadir, "\"")
+
+
+
+print(cmd)
+
+system(cmd)
+
+
+
+```
+
+
+# running proc_rtk
+
+```{r}
+
+
+proc_rtk(Rover = "CAR", Occ = 1, Method = "RTK-R10", Period = "5MIN_TO_10MIN")
+
+
+proc_rtk(Rover = "CAR", Occ = 1, Method = "RTK-CORS", Period = "FULL")
+proc_rtk(Rover = "CAR", Occ = 1, Method = "RTK-CORS", Period = "30MIN")
+
+proc_rtk(Rover = "CAR", Occ = 1, Method = "RTK-R10", Period = "60MIN")
+proc_rtk(Rover = "EML", Occ = 1, Method = "RTK-R10", Period = "60MIN")
+proc_rtk(Rover = "JVD", Occ = 1, Method = "RTK-R10", Period = "60MIN")
+proc_rtk(Rover = "R10-Rover", Occ = 1, Method = "RTK-R10", Period = "60MIN")
+proc_rtk(Rover = "TOP", Occ = 1, Method = "RTK-R10", Period = "60MIN")
+
+
+proc_rtk(Rover = "CAR", Occ = 2, Method = "RTK-R10", Period = "60MIN")
+proc_rtk(Rover = "EML", Occ = 2, Method = "RTK-R10", Period = "60MIN")
+proc_rtk(Rover = "JVD", Occ =2, Method = "RTK-R10", Period = "60MIN")
+proc_rtk(Rover = "R10-Rover", Occ = 2, Method = "RTK-R10", Period = "60MIN")
+proc_rtk(Rover = "TOP", Occ = 2, Method = "RTK-R10", Period = "60MIN")
+
+proc_rtk(Rover = "CAR", Occ = 1, Method = "RTK-CORS", Period = "60MIN")
+
+rover_list = c("CAR","EML","JVD","R10-Rover", "TOP")
+occ_list = c(1,2)
+interval_list = c("5MIN","10MIN","30MIN","60MIN", "15MIN", "15MIN_TO_30MIN", "30MIN_TO_45MIN", "45MIN_TO_60MIN")
+
+for (irover in rover_list){
+  for (iocc in occ_list){
+    for (iinterval in interval_list){
+      proc_rtk(Rover =irover, Occ = iocc, Method = "RTK-R10", Period = iinterval, replot_only = T)
+    }
+  }
+}
+
+for (irover in rover_list){
+  for (iocc in occ_list){
+    # for (iinterval in interval_list){
+      proc_rtk(Rover =irover, Occ = iocc, Method = "RTK-CORS", Period = "60MIN")
+    # }
+  }
+}
+
+
+
+
+
+# 
+```
+
+
+
+
+# Analyse JVD OCC1 in detail (first 60 minutes) using RTKPOST (GUI)
+
+```{r}
+
+POS_ffn = "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/data/Field-Test-Ballance-20231108/JVD/SOLUTIONS/OCC1-PPK-R10BASE/SOLN_101.pos"
+
+analyze_POS(RCVR="JVD", OCC = 1, PEG=6, PERIOD="60MIN", POS_ffn)
+
+
+
+
+```
+
