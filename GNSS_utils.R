@@ -6,7 +6,7 @@ library(tidyverse)
 library(sf)
 library(mapview)
 library(plotly)
-
+library(ggforce)
 
 # to include this set of utilities in other code:
 #source("C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/Code/R/PRJ3820-DOC-GNSS/GNSS_utils.R")
@@ -76,6 +76,175 @@ crs_convert = function(csv_ffn = NULL, crs_src, crs_dst, plot_dst=T){
 }
 
 
+draw_circle=function(g, RADIUS, CX, CY, NPOINTS = 100, COL = "red", LTYPE = "dashed"){
+  
+  CIRC = circleFun(center = c(CX, CY), diameter = RADIUS*2, npoints = NPOINTS)
+  
+  g = g + geom_path(data = CIRC, aes(x,y), color = COL, linetype = LTYPE)
+  g
+  
+}
+
+circleFun <- function(center = c(0,0),diameter = 1, npoints = 100){
+  r = diameter / 2
+  tt <- seq(0,2*pi,length.out = npoints)
+  xx <- center[1] + r * cos(tt)
+  yy <- center[2] + r * sin(tt)
+  circ = data.frame(x = xx, y = yy) 
+  # circ_pos = circ %>% filter(y>=center[2]) %>% dplyr::arrange(x)
+  # circ_neg = circ %>% filter(y<=center[2]) %>% dplyr::arrange(x, "desc")
+  # circ_srt = bind_rows(circ_pos, circ_neg)
+  return(circ)
+}
+
+#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+### rotate coordinate system to find angle of rotation that
+# minimizes correlation between EASTING AND NORTHING Coordinates
+#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+#+
+
+
+find_semi_major = function(D, known_loc){
+  
+  # D = read_csv("c:/temp/CRSD.csv") %>% 
+  #   mutate(
+  #     DX = X-known_loc$X,
+  #     DY = Y-known_loc$Y,
+  #   )
+  # known_loc = data.frame(PEG = 6, X = 1838913.032, Y = 5531118.301)
+  
+  D = D %>% 
+    mutate(
+      DX = X - known_loc$X,
+      DY = Y - known_loc$Y
+    )
+  
+  interv_deg = 1 # degrees
+  interv = interv_deg*pi/180
+  angles = seq(-pi/2, pi/2, interv)
+  
+  for (i in 1:length(angles)){
+    
+    itheta = angles[4]
+    itheta = angles[i]  
+    Drot = D %>% 
+      mutate(
+        
+        DXROT = DX * cos(itheta) + DY * sin(itheta),
+        DYROT = -1 * DX * sin(itheta) + DY * cos(itheta)
+        
+      )
+    
+    COV_orig = cov(Drot$DX, Drot$DY)
+    COV = cov(Drot$DXROT, Drot$DYROT)
+    
+    DROW = data.frame(i, itheta, COV)
+    
+    if (i==1){
+      DOUT = DROW
+    } else {
+      DOUT = DOUT %>% bind_rows(DROW)
+    }
+  }
+  
+  print(DOUT)
+  
+  
+  min_cov_theta = DOUT$itheta[which.min(abs(DOUT$COV))]
+  min_cov_theta_deg = min_cov_theta*180/pi
+  
+  g = ggplot(DOUT) + geom_point(aes(itheta, COV))
+  g = g + geom_vline(aes(xintercept = min_cov_theta))
+  g
+  
+  Drot_final = D %>% 
+    mutate(
+      DXROT = DX * cos(min_cov_theta) + DY * sin(min_cov_theta),
+      DYROT = -1 * DX * sin(min_cov_theta) + DY * cos(min_cov_theta)
+      
+    )
+  
+  
+  
+  g = ggplot(Drot_final) + geom_point(aes(DX, DY))
+  g = g + geom_point(aes(DXROT, DYROT), color = "red")
+  g = g + lims(x = c(-.75,.75), y = c(-.75,.75))
+  g
+  
+  
+  
+  DX_SIGMA_95 = 2 * sd(Drot_final$DXROT)
+  DY_SIGMA_95 = 2 * sd(Drot_final$DYROT)
+  
+  DX_SIGMA_95_ROT = DX_SIGMA_95 * cos(min_cov_theta) + 0 * sin(min_cov_theta)
+  DY_SIGMA_95_ROT = 0 * cos(min_cov_theta) + DY_SIGMA_95 * sin(min_cov_theta)
+  
+  if (DX_SIGMA_95 > DY_SIGMA_95){
+    Semimajor_azimuth = min_cov_theta
+    Semiminor_azimuth = min_cov_theta - pi/2
+    Semimajor_2SD = DX_SIGMA_95
+    Semiminor_2SD = DY_SIGMA_95
+  }else{
+    Semimajor_azimuth = min_cov_theta - pi/2
+    Semiminor_azimuth = min_cov_theta 
+    Semimajor_2SD = DY_SIGMA_95
+    Semiminor_2SD = DX_SIGMA_95
+  }
+  
+  DOUT = data.frame(
+    Semimajor_azimuth = Semimajor_azimuth,
+    Semiminor_azimuth = Semiminor_azimuth,
+    Semimajor_2SD = Semimajor_2SD,
+    Semiminor_2SD = Semiminor_2SD)
+  
+  
+  # NOW ROTATE THE sigma values
+  
+  # ggplot(DOUT) + geom_ellipse(aes(x0 = 0,y0 = 0, a = Semimajor_2SD, b = Semiminor_2SD, angle = 90 ))
+  
+  
+  return(DOUT)
+}
+
+
+
+#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+### plot ellipse
+#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+# 
+# g = ggplot object that the ellipse will be plotted to
+# XC = x coordinate of centre of ellipse
+# XY = y coordinate of centre of ellipse
+# A = semi-minor axis of ellipse
+# B = semi-major axis of ellipse
+# THETA = angle (measured anticlockwise from positive horisontal axis) of ellipse
+
+plot_ellipse = function(g, XC, YC, A, B, THETA){
+  
+  # 
+  # XC = 0
+  # YC = 0
+  # A = 4
+  # B = 2
+  # THETA = pi/4
+  
+  t = seq(0, 2*pi, 0.01) 
+  x = XC + A*cos(t)*cos(THETA) - B*sin(t)*sin(THETA)
+  y = YC + A*cos(t)*cos(THETA) + B*sin(t)*cos(THETA)
+  
+  DF = data.frame(t,x,y)
+  
+  g2 = ggplot(DF) + geom_path(aes(x=x,y=y))
+  g2 = g2 + geom_point()
+  
+  g2 = g2 + geom_point(data = DF, aes(x,y))
+  
+  g3 = ggplot(DF) + geom_point(aes(x=x,y=y))
+  g3 = g3 + geom_path(aes(x,y), color="red")
+  return(g)
+  
+}
+
 
 
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -90,16 +259,19 @@ calc_acc_and_prec = function(GNSS_data, known_loc){
   
   GNSS_data = GNSS_data %>% 
     mutate(
-      X_DEV2 = (X - known_loc$X)^2,
-      Y_DEV2 = (Y - known_loc$Y)^2
+      X_DEV = (X - known_loc$X),
+      Y_DEV = (Y - known_loc$Y),
+      
+      X_DEV2 = X_DEV^2,
+      Y_DEV2 = Y_DEV^2
     )
   
   GNSS_data_smy = GNSS_data %>% 
     summarise(
       M_X_tmp = sum(X_DEV2),
       M_Y_tmp = sum(Y_DEV2),
-      SIGMA_X = sd(X_DEV2),
-      SIGMA_Y = sd(Y_DEV2),
+      SIGMA_X = sd(X_DEV),
+      SIGMA_Y = sd(Y_DEV)
     ) %>% 
     mutate(
       M_X = sqrt(M_X_tmp/n),
@@ -121,25 +293,36 @@ calc_acc_and_prec = function(GNSS_data, known_loc){
 ### ===> Function analyze_POS\\
 
 
+# calls 
 
-analyze_POS = function(RCVR, OCC, PEG, PERIOD, POS_ffn, plotdir = "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/plots/Solution-Plots/" , plotdim = 3, limax = T, tm_win = NULL){
+# 
+# anl_pos_fig_1
+# calc_acc_and_prec
 
-  RCVR = "JVD"
-  OCC = 1
-  PEG = 6
-  PERIOD = "60 MIN"
+
+
+analyze_POS = function(RCVR, OCC, PEG, METHOD = NULL, PERIOD, POS_ffn, plotdir = "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/plots/Solution-Plots/" , plotdim = 3, limax = T, tm_win = NULL, FMT_OPT=1){
   # 
-  POS_ffn = "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/data/Field-Test-Ballance-20231108/JVD/SOLUTIONS/OCC1-PPK-R10BASE/SOLN_101.pos"
-  POS_ffn = "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/data/Field-Test-Ballance-20231108/JVD/SOLUTIONS/OCC1-PPK-R10BASE/SOLN_102.pos"
-
-  FMT_OPT = 2
-  
-    
-  # POS_ffn = "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/data/Field-Test-Ballance-20231108/BAL_OCC1_JVD_RTK-R10_60MIN.pos"
+  # RCVR = "JVD"
+  # OCC = 2
+  # PEG = 4
+  # PERIOD = "60 MIN"
+  # METHOD = "RTK-R10"
+  # FMT_OPT = 1
   # plotdim = 3
   # limax = T
   # tm_win = NULL
-  # plotdir = "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/plots/Solution-Plots/"
+  # 
+  # #
+  # # POS_ffn = "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/data/Field-Test-Ballance-20231108/JVD/SOLUTIONS/OCC1-PPK-R10BASE/SOLN_101.pos"
+  # POS_ffn = "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/data/Field-Test-Ballance-20231108/JVD/SOLUTIONS/OCC1-PPK-R10BASE/SOLN_102.pos"
+  
+  # POS_ffn = "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/
+  # data/Field-Test-Ballance-20231108/SOLUTIONS/BAL_OCC1_JVD_RTK-R10_60MIN.pos"
+  # 
+  
+  
+  plotdir = "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/plots/Solution-Plots/"
   
   KnownPegPositions_binary_ffn = "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/data/KnownPegPositions.RDS"
   
@@ -147,6 +330,7 @@ analyze_POS = function(RCVR, OCC, PEG, PERIOD, POS_ffn, plotdir = "C:/Users/McMi
   
   known_loc = data.frame(Peg = PEG, X = KnownPegPositions$EASTING[PEG], Y = KnownPegPositions$NORTHING[PEG])
   
+  leapseconds_curr = 18
   
   if (FMT_OPT==2){
     NSKIP = 25
@@ -158,11 +342,14 @@ analyze_POS = function(RCVR, OCC, PEG, PERIOD, POS_ffn, plotdir = "C:/Users/McMi
       dplyr::filter(!is.na(GPS_DateTime) | GPS_DateTime != "" | GPS_DateTime != "NA") %>% 
       mutate(
         GPS_Time = as.POSIXct(GPS_DateTime, format = "%Y/%m/%d %H:%M:%S"),
-        melap = (as.numeric(GPS_Time) - as.numeric(GPS_Time[1]))/60)
+        melap = (as.numeric(GPS_Time) - as.numeric(GPS_Time[1]))/60,
+        UTC_TIME_PX = GPS_Time + seconds(leapseconds_curr)
+      )
+    
     
   } else {
     
-    NSKIP=11
+    NSKIP=12
     D = read_csv(POS_ffn, skip = NSKIP, col_names =F)
     HDRS = c("GPS_Week", "GPS_Time",  "Lat_DD",  "Lon_DD",  "Ht_ell", "Q",
              "nvsv","sdn", "sde", "sdu", "sdne" , "sdeu","sdun", "age" ,"ratio")
@@ -171,7 +358,8 @@ analyze_POS = function(RCVR, OCC, PEG, PERIOD, POS_ffn, plotdir = "C:/Users/McMi
     D = D %>% 
       mutate(
         across(Lat_DD:ratio, as.numeric),
-        melap = (GPS_Time - GPS_Time[1])/60) 
+        melap = (GPS_Time - GPS_Time[1])/60,
+        UTC_TIME_PX = GPS_tm_2_UTC(GPS_Week , GPS_Time )) 
     
     
   }
@@ -198,8 +386,6 @@ analyze_POS = function(RCVR, OCC, PEG, PERIOD, POS_ffn, plotdir = "C:/Users/McMi
   # 
   
   
-  Fig1 = anl_pos_fig_1(D_sf, RCVR, OCC, PEG, PERIOD,known_loc,  plotdir)
-  
   
   
   
@@ -207,47 +393,92 @@ analyze_POS = function(RCVR, OCC, PEG, PERIOD, POS_ffn, plotdir = "C:/Users/McMi
     st_coordinates() %>%  as.data.frame() %>% as_tibble() %>% mutate(melap = D$melap)
   
   
-  AccPrec = calc_acc_and_prec(CRDS, known_loc)
+  
+  OUTPUT_fig1_g = anl_pos_fig_1(D_sf, RCVR, OCC, PEG, PERIOD,known_loc,  plotdir)
+  
+  #get the semimajor angle
+  # SM = find_semi_major(CRDS, known_loc)
+  
+  #now draw an ellipse
+  # g = plot_ellipse(OUTPUT_fig1_g, known_loc$X,known_loc$Y, SM$Semiminor_2SD, SM$Semimajor_2SD, SM$Semimajor_azimuth)
+  # g  
+  # 
+  # g = ggplot(CRDS, aes(X,Y)) + geom_point()
+  # g = ggMarginal(g,CRDS, X,Y )
+  # g = plot_ellipse(g, known_loc$X,known_loc$Y, SM$Semiminor_2SD, SM$Semimajor_2SD, SM$Semimajor_azimuth)
+  # g 
+  
+  OUTPUT_AP_table = calc_acc_and_prec(CRDS, known_loc)
   
   print(AccPrec)
-
+  
+  #-----------------------------------------------------------------------#
+  # collate_results
+  #-----------------------------------------------------------------------#
+  
+  CollateDF_ffn =  "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/data/Field-Test-Ballance-20231108/SOLUTIONS/GNSS_PERFORMANCE_STATS_COLLATED.csv"
+  
+  
+  PX_UTC = GPS_tm_2_UTC(D$GPS_Week, D$GPS_Time)
+  TM_STT = strftime(min(PX_UTC), format = "%Y/%m/%d %H:%M:%S", tz="UTC")
+  TM_ENN = strftime(max(PX_UTC), format = "%Y/%m/%d %H:%M:%S", tz="UTC")
+  NSV_AVG = mean(D$nvsv)
+  PDOP_AVG = NA
+  X_AVG= mean(CRDS$X)
+  Y_AVG= mean(CRDS$Y)
+  
+  DATAROW = data.frame(
+    RCVR = RCVR,
+    PEG = PEG,
+    KNOWN_X = known_loc$X,
+    KNOWN_Y = known_loc$Y,
+    METHOD = METHOD,
+    TM_STT = TM_STT,
+    TM_ENN = TM_ENN,
+    NMEAS = OUTPUT_AP_table$N_MEAS,
+    MIN_ELAPSED = OUTPUT_AP_table$minutes_elapsed,
+    X_AVG = X_AVG,
+    Y_AVG = Y_AVG,
+    SIGMA_X = OUTPUT_AP_table$SIGMA_X,
+    SIGMA_Y = OUTPUT_AP_table$SIGMA_Y,
+    M_ACC = OUTPUT_AP_table$M_ACC,
+    M_PREC = OUTPUT_AP_table$M_PREC,
+    DRMS_65 = OUTPUT_AP_table$DRMS_65,
+    DRMS_95 = OUTPUT_AP_table$DRMS_95,
+    CEP_50 = OUTPUT_AP_table$CEP_50,
+    CEP_95 = OUTPUT_AP_table$CEP_95)
   
   
   
+  write_csv(DATAROW, CollateDF_ffn)
   
+  COLLATED_DATA = read_csv(CollateDF_ffn)
+  COLLATED_DATA_NEW = COLLATED_DATA %>% bind_rows(DATAROW)
   
-  errors_df = data.frame(x_meas = CRDS$X, y_meas = CRDS$Y) %>% 
-    as_tibble() %>% 
-    mutate(x_dev = known_loc$X - x_meas, y_dev = known_loc$Y)
+  write_csv(COLLATED_DATA_NEW, CollateDF_ffn)
   
-  
-  # average of last 5 positions
-  
-  # figure 2. the change in the errors as a function of minutes elapsed
-  
-  g  = ggplot(D_sf) + geom_point(aes(x = melap, y = sdne))
-  g
-  ggplotly(g)
-  # average of last 5 positions
-  
-  
-  # ggplotly(g)
-  
+  # "RCVR", "OCC", "PEG", "METHOD", "TM_STT", "TM_END",
+  #          "MELAP", "NMEAS", "NSV_AVG", "PDOP_AVG",
+  #          "X_AVG", "Y_AVG" ,
+  #          "RMSE", "DRMSE", "CEP", "CEP95")
+  #          
   # 
-  # mapview(D_sf, zcol = "melap")
-  # 
-  # ggplot(D) + geom_point(aes(Lon_DD, Lat_DD))
-  # 
-  # errors = D %>% 
-  #   gather(key = errortype, value = value, sdn:sdeu)
-  # 
-  # ggplot(errors) + geom_point(aes(melap, value, colour =errortype))
   
   
   
-  print(paste("Difference between Known position and Measured Position = ", DEL))
   
-  return(g1)
+  
+  
+  
+  
+  
+  
+  
+  OUTACC = paste("Difference between Known position and Measured Position = ", formatC(mean(DEL), digits = 7), " +/- ", formatC(sd(DEL), digits = 7), "Std Dev")
+  print(OUTACC)
+  
+  OUT = list(OUTACC, DATAROW, CRDS, OUTPUT_fig1_g)
+  return(OUT)
   
 }
 
@@ -257,10 +488,10 @@ analyze_POS = function(RCVR, OCC, PEG, PERIOD, POS_ffn, plotdir = "C:/Users/McMi
 # figure 1. the xy plot of the solution
 #======================================================================================#
 
-anl_pos_fig_1 = function(D_sf, RCVR, OCC, PEG, PERIOD, known_loc, plotdir){
+anl_pos_fig_1 = function(D_sf, RCVR, OCC, PEG, PERIOD, known_loc, plotdir, CEP=NULL){
   
   CRDS = D_sf %>% 
-    st_coordinates() %>%  as.data.frame() %>% as_tibble() %>% mutate(melap = D$melap)
+    st_coordinates() %>%  as.data.frame() %>% as_tibble() 
   
   CRDS_last5 = CRDS %>% tail(10) %>% summarise(across(everything(), mean))
   
@@ -268,7 +499,7 @@ anl_pos_fig_1 = function(D_sf, RCVR, OCC, PEG, PERIOD, known_loc, plotdir){
   
   AccPrec = calc_acc_and_prec(CRDS, known_loc)
   
-  
+  if (is.null(CEP)){CEP = c(AccPrec$CEP_50, AccPrec$CEP_95)}
   
   minx = min(CRDS$X)
   maxx = max(CRDS$X)
@@ -295,6 +526,35 @@ anl_pos_fig_1 = function(D_sf, RCVR, OCC, PEG, PERIOD, known_loc, plotdir){
     g  = ggplot(D_sf) + geom_sf(aes(fill = melap, color = melap)) + coord_sf(datum = 2193) + geom_point(data = known_loc, aes(X,Y), color = "red", size =5) + scale_fill_continuous(type = "viridis") + scale_color_continuous(type = "viridis") 
     
   }
+  
+  if (!is.null(CEP)){
+    # 
+    # CEP_50 = CEP[1]
+    # XNDIVS_50 = 100
+    # DIVSZ_50 = 2*CEP_50/XNDIVS_50
+    # XSERIES_50 = seq(-1*CEP_50, CEP_50, by=DIVSZ_50)
+    # YSERIES_50_POS =     sqrt(CEP_50^2 - ((XSERIES_50 - known_loc$X)^2)) + known_loc$Y
+    # YSERIES_50_NEG = -1*(sqrt(CEP_50^2 - ((XSERIES_50 - known_loc$X)^2)) + known_loc$Y)
+    # CEP_50_df = data.frame(X = c(XSERIES_50, XSERIES_50), Y  = c(YSERIES_50_POS, YSERIES_50_NEG))
+    # 
+    # CEP_95 = CEP[2]
+    # XNDIVS_95 = 100
+    # DIVSZ_95 = 2*CEP_95/XNDIVS_95
+    # XSERIES_95 = seq(-1*CEP_95, CEP_95, by=DIVSZ_95)
+    # YSERIES_95_POS =     sqrt(CEP_95^2 - ((XSERIES_95 - known_loc$X)^2)) + known_loc$Y
+    # YSERIES_95_NEG = -1*(sqrt(CEP_95^2 - ((XSERIES_95 - known_loc$X)^2)) + known_loc$Y)
+    # CEP_95_df = data.frame(X = c(XSERIES_95, XSERIES_95), Y  = c(YSERIES_95_POS, YSERIES_95_NEG))
+    # 
+    CEP_50 = CEP[1]
+    g = draw_circle(g, CEP_50, CX = known_loc$X, CY = known_loc$Y, NPOINTS = 100)
+    CEP_95 = CEP[2]
+    g = draw_circle(g, CEP_95, CX = known_loc$X, CY = known_loc$Y, NPOINTS = 100)
+    
+    
+  }
+  
+  
+  
   g = g + scale_x_continuous(breaks = seq(xlim[1], xlim[2]))
   g = g + scale_y_continuous(breaks = seq(ylim[1], ylim[2]))
   
@@ -309,6 +569,10 @@ anl_pos_fig_1 = function(D_sf, RCVR, OCC, PEG, PERIOD, known_loc, plotdir){
   
   DESCR = paste("Peg", PEG," - Occupation", OCC, " - ", PERIOD)
   g = g + annotate("text", x = xlim[1] + diff(xlim)*.05, y = ylim[2] - diff(ylim)*.15, label = DESCR, hjust=0)
+  
+  
+  ACC_PREC_METRICS = paste0("M_Acc = ", formatC(AccPrec$M_ACC, digits = 11) , ", M_Prec = ", formatC(AccPrec$M_PREC, digits = 11) )
+  g = g + annotate("text", x = xlim[1] + diff(xlim)*.05, y = ylim[2] - diff(ylim)*.25, label = ACC_PREC_METRICS, hjust=0)
   g
   
   g = g + annotate("text", x = xlim[1] + diff(xlim)*.05, y = ylim[2] - diff(ylim)*.55, label = paste0("DRMS(65%) = ", formatC(AccPrec$DRMS_65, digits = 3), "m"), hjust=0)
@@ -343,7 +607,7 @@ anl_pos_fig_1 = function(D_sf, RCVR, OCC, PEG, PERIOD, known_loc, plotdir){
 anl_pos_quantify_error = function(known_loc, D_sf){
   
   
-    
+  
   
   CRDS = D_sf %>% 
     st_coordinates() %>%  as.data.frame() %>% as_tibble() %>% mutate(melap = D$melap)
@@ -390,11 +654,11 @@ anl_pos_quantify_error = function(known_loc, D_sf){
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 proc_rtk = function(Rover, Occ, Method, Period, plotdim = 3, replot_only = F){
-  
-  # Rover = "JVD"
-  # Occ = 2
-  # Method = "RTK-R10"
-  # Period = "60MIN"
+
+  Rover = "JVD"
+  Occ = 2
+  Method = "RTK-R10"
+  Period = "60MIN"
   # plotdim=3
   # Method = "RTK-CORS"
   
@@ -412,6 +676,8 @@ proc_rtk = function(Rover, Occ, Method, Period, plotdim = 3, replot_only = F){
   fielddatadir_w10 = paste0(datadir_w10, "Field-Test-Ballance-20231108/")
   fielddatadir_wsl = paste0(datadir_wsl, "Field-Test-Ballance-20231108/")
   
+  solution_dn_w10 = paste0(fielddatadir_w10, "SOLUTIONS/")
+  solution_dn_wsl = paste0(fielddatadir_wsl, "SOLUTIONS/")
   
   #read the metadata table
   
@@ -461,6 +727,28 @@ proc_rtk = function(Rover, Occ, Method, Period, plotdim = 3, replot_only = F){
     
   )
   
+  precise_eph_ffn = case_when(
+    Occ == 1 ~ paste0(fielddatadir_wsl, "PREC-EPH-CLK/CODE Precise/COD0OPSFIN_20233110000_01D_05M_ORB.SP3"),
+    Occ == 2 ~ paste0(fielddatadir_wsl, "PREC-EPH-CLK/CODE Precise/COD0OPSFIN_20233120000_01D_05M_ORB.SP3"),
+    
+    
+  )
+  
+  precise_clk_ffn = case_when(
+    Occ == 1 ~ paste0(fielddatadir_wsl, "PREC-EPH-CLK/CODE Precise/COD0OPSFIN_20233110000_01D_05S_CLK.CLK"),
+    Occ == 2 ~ paste0(fielddatadir_wsl, "PREC-EPH-CLK/CODE Precise/COD0OPSFIN_20233120000_01D_05S_CLK.CLK"),
+    
+    
+  )
+  
+  base_nav_ffn = case_when(
+    Method == "RTK-R10" & Occ == 1 ~ paste0(fielddatadir_wsl, "R10-Base/RINEX211/01393111.23n"),
+    Method == "RTK-R10" & Occ == 2 ~ paste0(fielddatadir_wsl, "R10-Base/RINEX211/01393120.23n"),
+    Method == "RTK-CORS" & Occ == 1 ~ paste0(fielddatadir_wsl, "POSITIONZ-DNVK/OCC1/auto3110_20.23n"),
+    Method == "RTK-CORS" & Occ == 2 ~ paste0(fielddatadir_wsl, "POSITIONZ-DNVK/OCC1/auto3120.23n"),
+    
+  )
+  
   
   
   
@@ -493,8 +781,8 @@ proc_rtk = function(Rover, Occ, Method, Period, plotdim = 3, replot_only = F){
     
     # Build the name of the solution file
     Solution_fn = paste0("BAL_OCC",Occ,"_", Rover,"_", Method, "_", Period, ".pos" )
-    Solution_ffn = paste0(fielddatadir_wsl, Solution_fn)
-    Solution_ffn_w10 = paste0(fielddatadir_w10, Solution_fn)
+    Solution_ffn = paste0(solution_dn_wsl, Solution_fn)
+    Solution_ffn_w10 = paste0(solution_dn_w10, Solution_fn)
     #now build the cmd
     
     qm = "\""
@@ -547,7 +835,9 @@ proc_rtk = function(Rover, Occ, Method, Period, plotdim = 3, replot_only = F){
     CMD = paste0(cmd_stub_mdf,  " ",
                  qm, rover_ffn, qm, " ",
                  qm, base_obs_ffn, qm, " ",
-                 qm, base_nav_ffn, qm)
+                 qm, base_nav_ffn, qm, " ",
+                 qm, precise_eph_ffn, qm, " ",
+                 qm, precise_clk_ffn, qm)
     
     
     
@@ -563,6 +853,7 @@ proc_rtk = function(Rover, Occ, Method, Period, plotdim = 3, replot_only = F){
       print(paste("++++   Finished processing data from Rover:", Rover," - Occ#", Occ,"at peg # ", pegnum, "using method", Method))
       print(paste("++++   Time Period: ", Period))
       print(paste("++++   Solution saved to: ", basename(Solution_ffn_w10)))
+      print(paste("++++   in directory: ", dirname(Solution_ffn_w10)))
       print(paste("+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"))
       print(paste("Now plotting results"))
       print(paste("Done"))
@@ -575,7 +866,7 @@ proc_rtk = function(Rover, Occ, Method, Period, plotdim = 3, replot_only = F){
     if (!dir.exists(PLOTDN)){dir.create(PLOTDN, recursive = T)}
     
     
-    analyze_POS(Rover, OCC=Occ, PEG=pegnum, PERIOD=Period, Solution_ffn_w10, plotdir = PLOTDN, plotdim = plotdim)
+    # POS_ANL_RESULTS = analyze_POS(Rover, OCC=Occ, PEG=pegnum, PERIOD=Period, Solution_ffn_w10, plotdir = PLOTDN, plotdim = plotdim)
     
     
   }
@@ -601,3 +892,23 @@ read_rinex = function(PATH){
   library(asteRisk)
   testGPSnav <- readGPSNavigationRINEX("C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/data/Field-Test-Ballance-20231108/R10-Base/RINEX211/01393111.23n")
 }
+
+#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+### GPS_tm_2_UTC
+#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+#Check to make sure these three files exist
+GPS_tm_2_UTC = function(gps_week, gps_sec_of_current_week){
+  # gps_week = c(2287,2288)
+  # gps_sec_of_current_week = c(250846,250846)
+  
+  gps_week_in_sec = 7*86400*(gps_week)
+  sec_since_rollover = gps_week_in_sec+gps_sec_of_current_week
+  rollover_date = as.POSIXct("1980-1-6",  origin = "1970-01-01 00:00:00", tz = "UTC")
+  rollover_date_nmc = as.numeric(rollover_date)
+  leapseconds = 18
+  current_sec = rollover_date_nmc + sec_since_rollover + leapseconds
+  current_datetime_UTC = as.POSIXct(current_sec,  origin = "1970-01-01 00:00:00", tz = "UTC")
+}
+
+

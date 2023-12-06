@@ -462,7 +462,7 @@ A+B
 ```
 
 
-# GNSS POS READER
+# READ TRUTH LOCATIONS
 
 ```{r}
 
@@ -686,8 +686,27 @@ for (irover in rover_list){
 
 POS_ffn = "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/data/Field-Test-Ballance-20231108/JVD/SOLUTIONS/OCC1-PPK-R10BASE/SOLN_101.pos"
 
-analyze_POS(RCVR="JVD", OCC = 1, PEG=6, PERIOD="60MIN", POS_ffn)
+analyze_POS(RCVR="JVD", OCC = 2, PEG=4, PERIOD="60MIN", POS_ffn)
 
+
+
+proc_rtk(Rover = "JVD", Occ = 2, Method = "RTK-R10", Period = "240", plotdim = 3, replot_only = F)
+
+
+
+POS_ffn = "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/data/Field-Test-Ballance-20231108/JVD/SOLUTIONS/OCC1-PPK-R10BASE/SOLN_104.pos"
+
+
+
+
+
+
+OUT = analyze_POS(RCVR="JVD", OCC = 1,METHOD = "RTK-R10", PEG=4, PERIOD="240MIN", POS_ffn = POS_ffn)
+
+POS_ffn = "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/data/Field-Test-Ballance-20231108/SOLUTIONS/BAL_OCC2_JVD_RTK-R10_60MIN.pos"
+
+
+OUT = analyze_POS(RCVR="JVD", OCC = 2,METHOD = "RTK-R10", PEG=4, PERIOD="60MIN", POS_ffn = POS_ffn)
 
 
 
