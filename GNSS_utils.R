@@ -299,6 +299,70 @@ calc_acc_and_prec = function(GNSS_data, known_loc){
 # anl_pos_fig_1
 # calc_acc_and_prec
 
+#-----------------------------------------------------------------------#
+# read_POS: read an RTKLIB output file
+#-----------------------------------------------------------------------#
+
+
+read_POS = function(POS_ffn,FMT_OPT=NULL){
+  
+  
+  if (is.null(FMT_OPT)){
+    lines = readLines(POS_ffn,100)
+    NSKIP = min(which(!( str_detect(lines, "^\\%"))))-1
+    D = read_csv(POS_ffn, skip = NSKIP, col_names =F, show_col_types = FALSE)
+    HDRS = c("GPS_Week", "GPS_Time",  "Lat_DD",  "Lon_DD",  "Ht_ell", "Q",
+             "nvsv","sdn", "sde", "sdu", "sdne" , "sdeu","sdun", "age" ,"ratio")
+    names(D) <- HDRS
+    D %>% pull(GPS_Week) %>% unique()
+    D = D %>% 
+      mutate(
+        across(Lat_DD:ratio, as.numeric),
+        melap = (GPS_Time - GPS_Time[1])/60,
+        UTC_TIME_PX = GPS_tm_2_UTC(GPS_Week , GPS_Time )) 
+    
+    
+  }else{
+    
+    leapseconds_curr = 18
+    
+    if (FMT_OPT==2){
+      NSKIP = 25
+      D = read_csv(POS_ffn, skip = NSKIP, col_names =F)
+      HDRS = c("GPS_DateTime",   "Lat_DD",  "Lon_DD",  "Ht_ell", "Q",
+               "nvsv","sdn", "sde", "sdu", "sdne" , "sdeu","sdun", "age" , "ratio")
+      names(D) <- HDRS
+      D = D %>%
+        dplyr::filter(!is.na(GPS_DateTime) | GPS_DateTime != "" | GPS_DateTime != "NA") %>% 
+        mutate(
+          GPS_Time = as.POSIXct(GPS_DateTime, format = "%Y/%m/%d %H:%M:%S"),
+          melap = (as.numeric(GPS_Time) - as.numeric(GPS_Time[1]))/60,
+          UTC_TIME_PX = GPS_Time + seconds(leapseconds_curr)
+        )
+      
+      
+    } else {
+      
+      NSKIP=12
+      D = read_csv(POS_ffn, skip = NSKIP, col_names =F)
+      HDRS = c("GPS_Week", "GPS_Time",  "Lat_DD",  "Lon_DD",  "Ht_ell", "Q",
+               "nvsv","sdn", "sde", "sdu", "sdne" , "sdeu","sdun", "age" ,"ratio")
+      names(D) <- HDRS
+      D %>% pull(GPS_Week) %>% unique()
+      D = D %>% 
+        mutate(
+          across(Lat_DD:ratio, as.numeric),
+          melap = (GPS_Time - GPS_Time[1])/60,
+          UTC_TIME_PX = GPS_tm_2_UTC(GPS_Week , GPS_Time )) 
+      
+      
+    }
+  }
+  return(D)
+}
+
+
+
 
 
 analyze_POS = function(RCVR, OCC, PEG, METHOD = NULL, PERIOD, POS_ffn, plotdir = "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/plots/Solution-Plots/" , plotdim = 3, limax = T, tm_win = NULL, FMT_OPT=1){
@@ -330,43 +394,12 @@ analyze_POS = function(RCVR, OCC, PEG, METHOD = NULL, PERIOD, POS_ffn, plotdir =
   
   known_loc = data.frame(Peg = PEG, X = KnownPegPositions$EASTING[PEG], Y = KnownPegPositions$NORTHING[PEG])
   
-  leapseconds_curr = 18
-  
-  if (FMT_OPT==2){
-    NSKIP = 25
-    D = read_csv(POS_ffn, skip = NSKIP, col_names =F)
-    HDRS = c("GPS_DateTime",   "Lat_DD",  "Lon_DD",  "Ht_ell", "Q",
-             "nvsv","sdn", "sde", "sdu", "sdne" , "sdeu","sdun", "age" , "ratio")
-    names(D) <- HDRS
-    D = D %>%
-      dplyr::filter(!is.na(GPS_DateTime) | GPS_DateTime != "" | GPS_DateTime != "NA") %>% 
-      mutate(
-        GPS_Time = as.POSIXct(GPS_DateTime, format = "%Y/%m/%d %H:%M:%S"),
-        melap = (as.numeric(GPS_Time) - as.numeric(GPS_Time[1]))/60,
-        UTC_TIME_PX = GPS_Time + seconds(leapseconds_curr)
-      )
-    
-    
-  } else {
-    
-    NSKIP=12
-    D = read_csv(POS_ffn, skip = NSKIP, col_names =F)
-    HDRS = c("GPS_Week", "GPS_Time",  "Lat_DD",  "Lon_DD",  "Ht_ell", "Q",
-             "nvsv","sdn", "sde", "sdu", "sdne" , "sdeu","sdun", "age" ,"ratio")
-    names(D) <- HDRS
-    D %>% pull(GPS_Week) %>% unique()
-    D = D %>% 
-      mutate(
-        across(Lat_DD:ratio, as.numeric),
-        melap = (GPS_Time - GPS_Time[1])/60,
-        UTC_TIME_PX = GPS_tm_2_UTC(GPS_Week , GPS_Time )) 
-    
-    
-  }
+ 
   
   
+  D = read_POS(POS_ffn)
   
-  
+ 
   
   if (!is.null(tm_win)){
     D = D %>% filter(melap >= tm_win[1] & melap <= tm_win[2])
@@ -379,7 +412,10 @@ analyze_POS = function(RCVR, OCC, PEG, METHOD = NULL, PERIOD, POS_ffn, plotdir =
   # 
   D_sf = D %>% 
     st_as_sf(coords = c("Lon_DD", "Lat_DD"), crs = 4326) %>% 
-    st_transform(2193)  
+    st_transform(2193)  %>% 
+    mutate(
+      melap = D$melap
+    )
   
   # D_sf = D %>% 
   #  st_as_sf(coords = c("Lon_DD", "Lat_DD"), crs = 2193)
@@ -390,7 +426,11 @@ analyze_POS = function(RCVR, OCC, PEG, METHOD = NULL, PERIOD, POS_ffn, plotdir =
   
   
   CRDS = D_sf %>% 
-    st_coordinates() %>%  as.data.frame() %>% as_tibble() %>% mutate(melap = D$melap)
+    st_coordinates() %>%  
+    as.data.frame() %>% 
+    as_tibble() %>% 
+    mutate(melap = D_sf$melap)
+    
   
   
   
@@ -491,7 +531,8 @@ analyze_POS = function(RCVR, OCC, PEG, METHOD = NULL, PERIOD, POS_ffn, plotdir =
 anl_pos_fig_1 = function(D_sf, RCVR, OCC, PEG, PERIOD, known_loc, plotdir, CEP=NULL){
   
   CRDS = D_sf %>% 
-    st_coordinates() %>%  as.data.frame() %>% as_tibble() 
+    st_coordinates() %>%  as.data.frame() %>% as_tibble() %>% 
+    mutate(melap = D_sf$melap)
   
   CRDS_last5 = CRDS %>% tail(10) %>% summarise(across(everything(), mean))
   
@@ -654,19 +695,20 @@ anl_pos_quantify_error = function(known_loc, D_sf){
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 proc_rtk = function(Rover, Occ, Method, Period, plotdim = 3, replot_only = F){
-
-  Rover = "JVD"
-  Occ = 2
-  Method = "RTK-R10"
-  Period = "60MIN"
-  # plotdim=3
-  # Method = "RTK-CORS"
   
-  print(paste("+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"))
-  print(paste("++++   Start processing data from Rover:", Rover," - Occ#", Occ,"at peg # ", pegnum, "using method", Method))
-  print(paste("++++   Time Period: ", Period))
   
-  print(paste("--------------------------------------------------------------------------------------"))
+  
+  testmode = F
+  
+  if (testmode){
+    
+    Rover = "JVD"
+    Occ = 2
+    Method = "RTK-R10"
+    Period = "60MIN"
+    # plotdim=3
+    # Method = "RTK-CORS"
+  }
   
   
   
@@ -709,6 +751,15 @@ proc_rtk = function(Rover, Occ, Method, Period, plotdim = 3, replot_only = F){
   rover_fn = current_metadata_row$RAW_RINEX_FNAME
   rover_sdn = paste0(Rover, "/BAL-", Rover, "-OCC", Occ,"-P", pegnum, "-RINEX/" )
   rover_ffn = paste0(fielddatadir_wsl, rover_sdn, rover_fn)
+  
+  
+  print(paste("+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"))
+  print(paste("++++   Start processing data from Rover:", Rover," - Occ#", Occ,"at peg # ", pegnum, "using method", Method))
+  print(paste("++++   Time Period: ", Period))
+  print(paste("--------------------------------------------------------------------------------------"))
+  
+  proc_metadata = list(Rover = Rover, Occ = Occ, Peg = pegnum, Method = Method)
+  
   
   
   base_obs_ffn = case_when(
@@ -773,6 +824,20 @@ proc_rtk = function(Rover, Occ, Method, Period, plotdim = 3, replot_only = F){
     files_fnd = files_fnd + 1
   }else{
     print(paste("Base nav file:", base_nav_ffn, "not found"))
+  } 
+  
+  if (file.exists(wineq_path(precise_eph_ffn))){
+    print(paste("Base nav file:", precise_eph_ffn, "exists"))
+    files_fnd = files_fnd + 1
+  }else{
+    print(paste("Preceise ephemeris data file:", precise_eph_ffn, "not found"))
+  } 
+  
+  if (file.exists(wineq_path(precise_clk_ffn))){
+    print(paste("Base nav file:", precise_clk_ffn, "exists"))
+    files_fnd = files_fnd + 1
+  }else{
+    print(paste("Base nav file:", precise_clk_ffn, "not found"))
   } 
   
   
@@ -855,21 +920,31 @@ proc_rtk = function(Rover, Occ, Method, Period, plotdim = 3, replot_only = F){
       print(paste("++++   Solution saved to: ", basename(Solution_ffn_w10)))
       print(paste("++++   in directory: ", dirname(Solution_ffn_w10)))
       print(paste("+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"))
-      print(paste("Now plotting results"))
-      print(paste("Done"))
-      print(paste("+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"))
+      # print(paste("Now plotting results"))
+      # print(paste("Done"))
+      # print(paste("+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"))
       
     }
     
     
-    PLOTDN = paste0("C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/plots/Solution-Plots/", Rover, "/", Method, "/")
-    if (!dir.exists(PLOTDN)){dir.create(PLOTDN, recursive = T)}
-    
-    
+    # PLOTDN = paste0("C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/plots/Solution-Plots/", Rover, "/", Method, "/")
+    # if (!dir.exists(PLOTDN)){dir.create(PLOTDN, recursive = T)}
+    # 
+    # 
     # POS_ANL_RESULTS = analyze_POS(Rover, OCC=Occ, PEG=pegnum, PERIOD=Period, Solution_ffn_w10, plotdir = PLOTDN, plotdim = plotdim)
     
     
+    
+    
+    
+    
   }
+  
+  
+  OUT = list(proc_metadata, )
+  
+  
+  
 }
 
 
@@ -910,5 +985,27 @@ GPS_tm_2_UTC = function(gps_week, gps_sec_of_current_week){
   current_sec = rollover_date_nmc + sec_since_rollover + leapseconds
   current_datetime_UTC = as.POSIXct(current_sec,  origin = "1970-01-01 00:00:00", tz = "UTC")
 }
+#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+### rtk_proc_anal
+#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+# This is a wrapper function to process raw rinex data using RTKLIB (via the R function proc_rtk) and then analyse it
+# (using the R function analyze_POS)
+
+
+#Check to make sure these three files exist
+rtk_proc_anal = function(gps_week, gps_sec_of_current_week){
+  # gps_week = c(2287,2288)
+  # gps_sec_of_current_week = c(250846,250846)
+  
+  proc_rtk(Rover, Occ, Method, Period, plotdim = 3, replot_only = F)
+  
+  analyze_POS(RCVR, OCC, PEG, METHOD = NULL, PERIOD, POS_ffn, plotdir = "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/plots/Solution-Plots/" , plotdim = 3, limax = T, tm_win = NULL, FMT_OPT=1)
+  
+  
+  
+  
+}
+
 
 
