@@ -268,6 +268,9 @@ calc_acc_and_prec = function(GNSS_data, known_loc){
   
   GNSS_data_smy = GNSS_data %>% 
     summarise(
+      mean_X_DEV = mean(X_DEV),
+      mean_Y_DEV = mean(Y_DEV),
+      
       M_X_tmp = sum(X_DEV2),
       M_Y_tmp = sum(Y_DEV2),
       SIGMA_X = sd(X_DEV),
@@ -276,7 +279,8 @@ calc_acc_and_prec = function(GNSS_data, known_loc){
     mutate(
       M_X = sqrt(M_X_tmp/n),
       M_Y = sqrt(M_Y_tmp/n),
-      M_ACC = sqrt(M_X^2 + M_Y^2),
+      # M_ACC = sqrt(M_X^2 + M_Y^2),
+      M_ACC = sqrt(mean_X_DEV^2 + mean_Y_DEV^2),
       M_PREC = sqrt(SIGMA_X^2 + SIGMA_X^2),  #this is DRMS
       DRMS_65 = sqrt(SIGMA_X^2 + SIGMA_X^2),
       DRMS_95 = 2*DRMS_65,
@@ -363,172 +367,11 @@ read_POS = function(POS_ffn,FMT_OPT=NULL){
 
 
 
-
-
-analyze_POS = function(RCVR, OCC, PEG, METHOD = NULL, PERIOD, POS_ffn, plotdir = "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/plots/Solution-Plots/" , plotdim = 3, limax = T, tm_win = NULL, FMT_OPT=1){
-  # 
-  # RCVR = "JVD"
-  # OCC = 2
-  # PEG = 4
-  # PERIOD = "60 MIN"
-  # METHOD = "RTK-R10"
-  # FMT_OPT = 1
-  # plotdim = 3
-  # limax = T
-  # tm_win = NULL
-  # 
-  # #
-  # # POS_ffn = "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/data/Field-Test-Ballance-20231108/JVD/SOLUTIONS/OCC1-PPK-R10BASE/SOLN_101.pos"
-  # POS_ffn = "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/data/Field-Test-Ballance-20231108/JVD/SOLUTIONS/OCC1-PPK-R10BASE/SOLN_102.pos"
-  
-  # POS_ffn = "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/
-  # data/Field-Test-Ballance-20231108/SOLUTIONS/BAL_OCC1_JVD_RTK-R10_60MIN.pos"
-  # 
-  
-  
-  plotdir = "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/plots/Solution-Plots/"
-  
-  KnownPegPositions_binary_ffn = "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/data/KnownPegPositions.RDS"
-  
-  KnownPegPositions = readRDS(KnownPegPositions_binary_ffn)
-  
-  known_loc = data.frame(Peg = PEG, X = KnownPegPositions$EASTING[PEG], Y = KnownPegPositions$NORTHING[PEG])
-  
- 
-  
-  
-  D = read_POS(POS_ffn)
-  
- 
-  
-  if (!is.null(tm_win)){
-    D = D %>% filter(melap >= tm_win[1] & melap <= tm_win[2])
-  }
-  
-  # D_sf = D %>% 
-  #   st_as_sf(coords = c("Lon_DD", "Lat_DD"), crs = 7912) %>% 
-  #   st_transform(4326) %>% 
-  #   st_transform(2193)  
-  # 
-  D_sf = D %>% 
-    st_as_sf(coords = c("Lon_DD", "Lat_DD"), crs = 4326) %>% 
-    st_transform(2193)  %>% 
-    mutate(
-      melap = D$melap
-    )
-  
-  # D_sf = D %>% 
-  #  st_as_sf(coords = c("Lon_DD", "Lat_DD"), crs = 2193)
-  # 
-  
-  
-  
-  
-  
-  CRDS = D_sf %>% 
-    st_coordinates() %>%  
-    as.data.frame() %>% 
-    as_tibble() %>% 
-    mutate(melap = D_sf$melap)
-    
-  
-  
-  
-  OUTPUT_fig1_g = anl_pos_fig_1(D_sf, RCVR, OCC, PEG, PERIOD,known_loc,  plotdir)
-  
-  #get the semimajor angle
-  # SM = find_semi_major(CRDS, known_loc)
-  
-  #now draw an ellipse
-  # g = plot_ellipse(OUTPUT_fig1_g, known_loc$X,known_loc$Y, SM$Semiminor_2SD, SM$Semimajor_2SD, SM$Semimajor_azimuth)
-  # g  
-  # 
-  # g = ggplot(CRDS, aes(X,Y)) + geom_point()
-  # g = ggMarginal(g,CRDS, X,Y )
-  # g = plot_ellipse(g, known_loc$X,known_loc$Y, SM$Semiminor_2SD, SM$Semimajor_2SD, SM$Semimajor_azimuth)
-  # g 
-  
-  OUTPUT_AP_table = calc_acc_and_prec(CRDS, known_loc)
-  
-  print(AccPrec)
-  
-  #-----------------------------------------------------------------------#
-  # collate_results
-  #-----------------------------------------------------------------------#
-  
-  CollateDF_ffn =  "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/data/Field-Test-Ballance-20231108/SOLUTIONS/GNSS_PERFORMANCE_STATS_COLLATED.csv"
-  
-  
-  PX_UTC = GPS_tm_2_UTC(D$GPS_Week, D$GPS_Time)
-  TM_STT = strftime(min(PX_UTC), format = "%Y/%m/%d %H:%M:%S", tz="UTC")
-  TM_ENN = strftime(max(PX_UTC), format = "%Y/%m/%d %H:%M:%S", tz="UTC")
-  NSV_AVG = mean(D$nvsv)
-  PDOP_AVG = NA
-  X_AVG= mean(CRDS$X)
-  Y_AVG= mean(CRDS$Y)
-  
-  DATAROW = data.frame(
-    RCVR = RCVR,
-    PEG = PEG,
-    KNOWN_X = known_loc$X,
-    KNOWN_Y = known_loc$Y,
-    METHOD = METHOD,
-    TM_STT = TM_STT,
-    TM_ENN = TM_ENN,
-    NMEAS = OUTPUT_AP_table$N_MEAS,
-    MIN_ELAPSED = OUTPUT_AP_table$minutes_elapsed,
-    X_AVG = X_AVG,
-    Y_AVG = Y_AVG,
-    SIGMA_X = OUTPUT_AP_table$SIGMA_X,
-    SIGMA_Y = OUTPUT_AP_table$SIGMA_Y,
-    M_ACC = OUTPUT_AP_table$M_ACC,
-    M_PREC = OUTPUT_AP_table$M_PREC,
-    DRMS_65 = OUTPUT_AP_table$DRMS_65,
-    DRMS_95 = OUTPUT_AP_table$DRMS_95,
-    CEP_50 = OUTPUT_AP_table$CEP_50,
-    CEP_95 = OUTPUT_AP_table$CEP_95)
-  
-  
-  
-  write_csv(DATAROW, CollateDF_ffn)
-  
-  COLLATED_DATA = read_csv(CollateDF_ffn)
-  COLLATED_DATA_NEW = COLLATED_DATA %>% bind_rows(DATAROW)
-  
-  write_csv(COLLATED_DATA_NEW, CollateDF_ffn)
-  
-  # "RCVR", "OCC", "PEG", "METHOD", "TM_STT", "TM_END",
-  #          "MELAP", "NMEAS", "NSV_AVG", "PDOP_AVG",
-  #          "X_AVG", "Y_AVG" ,
-  #          "RMSE", "DRMSE", "CEP", "CEP95")
-  #          
-  # 
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  OUTACC = paste("Difference between Known position and Measured Position = ", formatC(mean(DEL), digits = 7), " +/- ", formatC(sd(DEL), digits = 7), "Std Dev")
-  print(OUTACC)
-  
-  OUT = list(OUTACC, DATAROW, CRDS, OUTPUT_fig1_g)
-  return(OUT)
-  
-}
-
-
-
 #======================================================================================#
 # figure 1. the xy plot of the solution
 #======================================================================================#
 
-anl_pos_fig_1 = function(D_sf, RCVR, OCC, PEG, PERIOD, known_loc, plotdir, CEP=NULL){
+anl_pos_fig_1 = function(D_sf, RCVR, OCC, PEG, PERIOD, known_loc, plotdir, plotdim, limax, CEP=NULL){
   
   CRDS = D_sf %>% 
     st_coordinates() %>%  as.data.frame() %>% as_tibble() %>% 
@@ -536,7 +379,7 @@ anl_pos_fig_1 = function(D_sf, RCVR, OCC, PEG, PERIOD, known_loc, plotdir, CEP=N
   
   CRDS_last5 = CRDS %>% tail(10) %>% summarise(across(everything(), mean))
   
-  DEL = sqrt( (known_loc$X - CRDS$X)^2 + (known_loc$Y - CRDS$Y)^2 )
+  # DEL = sqrt( (known_loc$X - CRDS$X)^2 + (known_loc$Y - CRDS$Y)^2 )
   
   AccPrec = calc_acc_and_prec(CRDS, known_loc)
   
@@ -659,7 +502,7 @@ anl_pos_quantify_error = function(known_loc, D_sf){
   
   CRDS_last5 = CRDS %>% tail(10) %>% summarise(across(everything(), mean))
   
-  DEL = sqrt( (known_loc$X - CRDS_last5$X)^2 + (known_loc$Y - CRDS_last5$Y)^2 )
+  # DEL = sqrt( (known_loc$X - CRDS_last5$X)^2 + (known_loc$Y - CRDS_last5$Y)^2 )
   
   
   
@@ -688,6 +531,48 @@ anl_pos_quantify_error = function(known_loc, D_sf){
   
   
 }
+
+
+
+#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+### wineq_path
+#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+#Check to make sure these three files exist
+wineq_path = function(PATH){
+  PATHOUT = str_replace(PATH, "\\/mnt\\/c", "C\\:\\")
+}
+
+
+#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+### read_rinex
+#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+#Check to make sure these three files exist
+read_rinex = function(PATH){
+  library(asteRisk)
+  testGPSnav <- readGPSNavigationRINEX("C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/data/Field-Test-Ballance-20231108/R10-Base/RINEX211/01393111.23n")
+}
+
+#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+### GPS_tm_2_UTC
+#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+#Check to make sure these three files exist
+GPS_tm_2_UTC = function(gps_week, gps_sec_of_current_week){
+  # gps_week = c(2287,2288)
+  # gps_sec_of_current_week = c(250846,250846)
+  
+  gps_week_in_sec = 7*86400*(gps_week)
+  sec_since_rollover = gps_week_in_sec+gps_sec_of_current_week
+  rollover_date = as.POSIXct("1980-1-6",  origin = "1970-01-01 00:00:00", tz = "UTC")
+  rollover_date_nmc = as.numeric(rollover_date)
+  leapseconds = 18
+  current_sec = rollover_date_nmc + sec_since_rollover + leapseconds
+  current_datetime_UTC = as.POSIXct(current_sec,  origin = "1970-01-01 00:00:00", tz = "UTC")
+}
+
+
 
 
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -758,15 +643,19 @@ proc_rtk = function(Rover, Occ, Method, Period, plotdim = 3, replot_only = F){
   print(paste("++++   Time Period: ", Period))
   print(paste("--------------------------------------------------------------------------------------"))
   
-  proc_metadata = list(Rover = Rover, Occ = Occ, Peg = pegnum, Method = Method)
+  proc_metadata = list(Rover = Rover, Occ = Occ, Peg = pegnum, Method = Method, Period=Period)
   
   
   
   base_obs_ffn = case_when(
     Method == "RTK-R10" & Occ == 1 ~ paste0(fielddatadir_wsl, "R10-Base/RINEX211/01393111.23o"),
     Method == "RTK-R10" & Occ == 2 ~ paste0(fielddatadir_wsl, "R10-Base/RINEX211/01393120.23o"),
-    Method == "RTK-CORS" & Occ == 1 ~ paste0(fielddatadir_wsl, "POSITIONZ-DNVK/OCC1/dnvk3110_20.23o"),
-    Method == "RTK-CORS" & Occ == 2 ~ paste0(fielddatadir_wsl, "POSITIONZ-DNVK/OCC1/dnvk3120.23o"),
+    Method == "RTK-CORS-DNVK" & Occ == 1 ~ paste0(fielddatadir_wsl, "POSITIONZ-DNVK/OCC1/dnvk3110_20.23o"),
+    Method == "RTK-CORS-DNVK" & Occ == 2 ~ paste0(fielddatadir_wsl, "POSITIONZ-DNVK/OCC2/dnvk3120.23o"),
+    Method == "RTK-CORS-WANG" & Occ == 1 ~ paste0(fielddatadir_wsl, "POSITIONZ-WANG/OCC1/dnvk3110_20.23o"),
+    Method == "RTK-CORS-WANG" & Occ == 2 ~ paste0(fielddatadir_wsl, "POSITIONZ-WANG/OCC2/dnvk3120.23o"),
+    Method == "RTK-CORS-WRPA" & Occ == 1 ~ paste0(fielddatadir_wsl, "POSITIONZ-WRPA/OCC1/dnvk3110_20.23o"),
+    Method == "RTK-CORS-WRPA" & Occ == 2 ~ paste0(fielddatadir_wsl, "POSITIONZ-WRPA/OCC2/dnvk3120.23o"),
     
   )
   
@@ -775,6 +664,12 @@ proc_rtk = function(Rover, Occ, Method, Period, plotdim = 3, replot_only = F){
     Method == "RTK-R10" & Occ == 2 ~ paste0(fielddatadir_wsl, "R10-Base/RINEX211/01393120.23n"),
     Method == "RTK-CORS" & Occ == 1 ~ paste0(fielddatadir_wsl, "POSITIONZ-DNVK/OCC1/auto3110_20.23n"),
     Method == "RTK-CORS" & Occ == 2 ~ paste0(fielddatadir_wsl, "POSITIONZ-DNVK/OCC1/auto3120.23n"),
+    Method == "RTK-CORS-DNVK" & Occ == 1 ~ paste0(fielddatadir_wsl, "POSITIONZ-DNVK/OCC1/dnvk3110_20.23n"),
+    Method == "RTK-CORS-DNVK" & Occ == 2 ~ paste0(fielddatadir_wsl, "POSITIONZ-DNVK/OCC2/dnvk3120.23n"),
+    Method == "RTK-CORS-WANG" & Occ == 1 ~ paste0(fielddatadir_wsl, "POSITIONZ-WANG/OCC1/wang3110_20.23n"),
+    Method == "RTK-CORS-WANG" & Occ == 2 ~ paste0(fielddatadir_wsl, "POSITIONZ-WANG/OCC2/wang3120.23n"),
+    Method == "RTK-CORS-WRPA" & Occ == 1 ~ paste0(fielddatadir_wsl, "POSITIONZ-WRPA/OCC1/wrpa3110_20.23n"),
+    Method == "RTK-CORS-WRPA" & Occ == 2 ~ paste0(fielddatadir_wsl, "POSITIONZ-WRPA/OCC2/wrpa3120.23n"),
     
   )
   
@@ -840,9 +735,10 @@ proc_rtk = function(Rover, Occ, Method, Period, plotdim = 3, replot_only = F){
     print(paste("Base nav file:", precise_clk_ffn, "not found"))
   } 
   
+  print("=================================================================")
+  files_fnd
   
-  
-  if (files_fnd==3){
+  if (files_fnd==5){
     
     # Build the name of the solution file
     Solution_fn = paste0("BAL_OCC",Occ,"_", Rover,"_", Method, "_", Period, ".pos" )
@@ -938,53 +834,173 @@ proc_rtk = function(Rover, Occ, Method, Period, plotdim = 3, replot_only = F){
     
     
     
+    
+    
+    
+    POS_DATA = read_POS(Solution_ffn_w10)
+    
+    OUT = list(proc_metadata, POS_DATA, POS_FFN = Solution_ffn_w10, CMD)
+    
+  } else {
+    
+    print("A file is missing ....")
+    
+    
   }
   
   
-  OUT = list(proc_metadata, )
+  
+}
+
+#-----------------------------------------------------------------------#
+# analyze_POS: Analyses an RTKLIB Solution "POS" file (calls function read_POS)
+#-----------------------------------------------------------------------#
+
+analyze_POS = function(RCVR, OCC, PEG, METHOD = NULL, PERIOD, POS_ffn, plotdir = "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/plots/Solution-Plots/" , plotdim = 3, limax = T, tm_win = NULL, FMT_OPT=1){
+  # 
+  # RCVR = "JVD"
+  # OCC = 2
+  # PEG = 4
+  # PERIOD = "60 MIN"
+  # METHOD = "RTK-R10"
+  # FMT_OPT = 1
+  # plotdim = 3
+  # limax = T
+  # tm_win = NULL
+  # 
+  # #
+  # # POS_ffn = "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/data/Field-Test-Ballance-20231108/JVD/SOLUTIONS/OCC1-PPK-R10BASE/SOLN_101.pos"
+  # POS_ffn = "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/data/Field-Test-Ballance-20231108/JVD/SOLUTIONS/OCC1-PPK-R10BASE/SOLN_102.pos"
+  
+  # POS_ffn = "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/
+  # data/Field-Test-Ballance-20231108/SOLUTIONS/BAL_OCC1_JVD_RTK-R10_60MIN.pos"
+  # 
   
   
+  # plotdir = "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/plots/Solution-Plots/"
+  plotdir = "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/data/Field-Test-Ballance-20231108/SOLUTIONS/plots/"
+  
+  KnownPegPositions_binary_ffn = "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/data/KnownPegPositions.RDS"
+  
+  KnownPegPositions = readRDS(KnownPegPositions_binary_ffn)
+  
+  known_loc = data.frame(Peg = PEG, X = KnownPegPositions$EASTING[PEG], Y = KnownPegPositions$NORTHING[PEG])
+  
+  
+  
+  
+  D = read_POS(POS_ffn)
+  
+  
+  
+  if (!is.null(tm_win)){
+    D = D %>% filter(melap >= tm_win[1] & melap <= tm_win[2])
+  }
+  
+  # D_sf = D %>% 
+  #   st_as_sf(coords = c("Lon_DD", "Lat_DD"), crs = 7912) %>% 
+  #   st_transform(4326) %>% 
+  #   st_transform(2193)  
+  # 
+  D_sf = D %>% 
+    st_as_sf(coords = c("Lon_DD", "Lat_DD"), crs = 4326) %>% 
+    st_transform(2193)  %>% 
+    mutate(
+      melap = D$melap
+    )
+  
+  # D_sf = D %>% 
+  #  st_as_sf(coords = c("Lon_DD", "Lat_DD"), crs = 2193)
+  # 
+  
+  
+  
+  
+  
+  CRDS = D_sf %>% 
+    st_coordinates() %>%  
+    as.data.frame() %>% 
+    as_tibble() %>% 
+    mutate(melap = D_sf$melap)
+  
+  
+  
+  
+  OUTPUT_fig1_g = anl_pos_fig_1(D_sf, RCVR, OCC, PEG, PERIOD,known_loc,  plotdim = 3, plotdir, limax)
+  
+  #get the semimajor angle
+  # SM = find_semi_major(CRDS, known_loc)
+  
+  #now draw an ellipse
+  # g = plot_ellipse(OUTPUT_fig1_g, known_loc$X,known_loc$Y, SM$Semiminor_2SD, SM$Semimajor_2SD, SM$Semimajor_azimuth)
+  # g  
+  # 
+  # g = ggplot(CRDS, aes(X,Y)) + geom_point()
+  # g = ggMarginal(g,CRDS, X,Y )
+  # g = plot_ellipse(g, known_loc$X,known_loc$Y, SM$Semiminor_2SD, SM$Semimajor_2SD, SM$Semimajor_azimuth)
+  # g 
+  
+  OUTPUT_AP_table = calc_acc_and_prec(CRDS, known_loc)
+  
+ 
+  
+  #-----------------------------------------------------------------------#
+  # collate_results
+  #-----------------------------------------------------------------------#
+  
+  CollateDF_ffn =  "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/data/Field-Test-Ballance-20231108/SOLUTIONS/GNSS_PERFORMANCE_STATS_COLLATED.csv"
+  
+  
+  PX_UTC = GPS_tm_2_UTC(D$GPS_Week, D$GPS_Time)
+  TM_STT = strftime(min(PX_UTC), format = "%Y/%m/%d %H:%M:%S", tz="UTC")
+  TM_ENN = strftime(max(PX_UTC), format = "%Y/%m/%d %H:%M:%S", tz="UTC")
+  NSV_AVG = mean(D$nvsv)
+  PDOP_AVG = NA
+  X_AVG= mean(CRDS$X)
+  Y_AVG= mean(CRDS$Y)
+  
+  DATAROW = data.frame(
+    RCVR = RCVR,
+    PEG = PEG,
+    KNOWN_X = known_loc$X,
+    KNOWN_Y = known_loc$Y,
+    METHOD = METHOD,
+    TM_STT = TM_STT,
+    TM_ENN = TM_ENN,
+    NMEAS = OUTPUT_AP_table$N_MEAS,
+    MIN_ELAPSED = OUTPUT_AP_table$minutes_elapsed,
+    X_AVG = X_AVG,
+    Y_AVG = Y_AVG,
+    SIGMA_X = OUTPUT_AP_table$SIGMA_X,
+    SIGMA_Y = OUTPUT_AP_table$SIGMA_Y,
+    M_ACC = OUTPUT_AP_table$M_ACC,
+    M_PREC = OUTPUT_AP_table$M_PREC,
+    DRMS_65 = OUTPUT_AP_table$DRMS_65,
+    DRMS_95 = OUTPUT_AP_table$DRMS_95,
+    CEP_50 = OUTPUT_AP_table$CEP_50,
+    CEP_95 = OUTPUT_AP_table$CEP_95)
+  
+  
+  
+  write_csv(DATAROW, CollateDF_ffn)
+  
+  COLLATED_DATA = read_csv(CollateDF_ffn)
+  COLLATED_DATA_NEW = COLLATED_DATA %>% bind_rows(DATAROW)
+  
+  write_csv(COLLATED_DATA_NEW, CollateDF_ffn)
+  
+  
+  OUTACC = paste("Difference between Known position and Measured Position = ", formatC(DATAROW$M_ACC, digits = 7), " +/- ", formatC(DATAROW$M_PREC, digits = 7), "Std Dev")
+  print(OUTACC)
+  
+  OUT = list(OUTACC, DATAROW, CRDS, OUTPUT_fig1_g)
+  return(OUT)
   
 }
 
 
-#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-### wineq_path
-#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-
-#Check to make sure these three files exist
-wineq_path = function(PATH){
-  PATHOUT = str_replace(base_obs_ffn, "\\/mnt\\/c", "C\\:\\")
-}
 
 
-#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-### read_rinex
-#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-
-#Check to make sure these three files exist
-read_rinex = function(PATH){
-  library(asteRisk)
-  testGPSnav <- readGPSNavigationRINEX("C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/data/Field-Test-Ballance-20231108/R10-Base/RINEX211/01393111.23n")
-}
-
-#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-### GPS_tm_2_UTC
-#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-
-#Check to make sure these three files exist
-GPS_tm_2_UTC = function(gps_week, gps_sec_of_current_week){
-  # gps_week = c(2287,2288)
-  # gps_sec_of_current_week = c(250846,250846)
-  
-  gps_week_in_sec = 7*86400*(gps_week)
-  sec_since_rollover = gps_week_in_sec+gps_sec_of_current_week
-  rollover_date = as.POSIXct("1980-1-6",  origin = "1970-01-01 00:00:00", tz = "UTC")
-  rollover_date_nmc = as.numeric(rollover_date)
-  leapseconds = 18
-  current_sec = rollover_date_nmc + sec_since_rollover + leapseconds
-  current_datetime_UTC = as.POSIXct(current_sec,  origin = "1970-01-01 00:00:00", tz = "UTC")
-}
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 ### rtk_proc_anal
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -994,13 +1010,25 @@ GPS_tm_2_UTC = function(gps_week, gps_sec_of_current_week){
 
 
 #Check to make sure these three files exist
-rtk_proc_anal = function(gps_week, gps_sec_of_current_week){
+rtk_proc_anal = function(Rover, Occ, Method, Period, plotdim = 3, replot_only = F){
   # gps_week = c(2287,2288)
   # gps_sec_of_current_week = c(250846,250846)
   
-  proc_rtk(Rover, Occ, Method, Period, plotdim = 3, replot_only = F)
+  #set the plot directory
+  PLOTDN = "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/plots/Solution-Plots/"
   
-  analyze_POS(RCVR, OCC, PEG, METHOD = NULL, PERIOD, POS_ffn, plotdir = "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/plots/Solution-Plots/" , plotdim = 3, limax = T, tm_win = NULL, FMT_OPT=1)
+  #process the raw GNSS data
+  RTKLIB_RESULTS = proc_rtk(Rover, Occ, Method, Period, plotdim = 3, replot_only = F)
+  
+  #grab the metadata
+  pegnum = RTKLIB_RESULTS[[1]]$Peg
+  method = RTKLIB_RESULTS[[1]]$Method
+  period = RTKLIB_RESULTS[[1]]$Period
+  #grab the file name of the solution file (POS file)
+  POS_ffn = RTKLIB_RESULTS[[3]]
+  
+  #analyse the solution file
+  POS_ANAL_RESULTS = analyze_POS(RCVR=Rover, OCC = Occ, PEG=pegnum, METHOD = method, PERIOD=period, POS_ffn, plotdir = PLOTDN , plotdim = 3, limax = T, tm_win = NULL, FMT_OPT=1)
   
   
   

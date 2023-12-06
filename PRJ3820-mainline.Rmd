@@ -690,7 +690,7 @@ analyze_POS(RCVR="JVD", OCC = 2, PEG=4, PERIOD="60MIN", POS_ffn)
 
 
 
-proc_rtk(Rover = "JVD", Occ = 2, Method = "RTK-R10", Period = "240", plotdim = 3, replot_only = F)
+RTKLIB_RESULTS = proc_rtk(Rover = "JVD", Occ = 2, Method = "RTK-R10", Period = "240", plotdim = 3, replot_only = F)
 
 
 
