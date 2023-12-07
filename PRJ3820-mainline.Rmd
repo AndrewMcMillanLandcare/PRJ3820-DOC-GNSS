@@ -4,6 +4,7 @@ title: "CycloneDamageAssessment-MainLine"
 output: html_notebook
 editor_options: 
   chunk_output_type: console
+chunk_output_type: console
 ---
 
 
@@ -665,7 +666,7 @@ for (irover in rover_list){
 for (irover in rover_list){
   for (iocc in occ_list){
     # for (iinterval in interval_list){
-      proc_rtk(Rover =irover, Occ = iocc, Method = "RTK-CORS", Period = "60MIN")
+    proc_rtk(Rover =irover, Occ = iocc, Method = "RTK-CORS", Period = "60MIN")
     # }
   }
 }
@@ -708,7 +709,120 @@ POS_ffn = "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/data/Fi
 
 OUT = analyze_POS(RCVR="JVD", OCC = 2,METHOD = "RTK-R10", PEG=4, PERIOD="60MIN", POS_ffn = POS_ffn)
 
+rtk_proc_anal(Rover="JVD", Occ=1, Method="RTK-R10", Period="", plotdim = 3, replot_only = F)
+
+```
+
+
+# Adhoc POS Analysis (especuially for those created by RTKLIB Gui)
+```{r}
+
+POS_ffn = "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/data/Field-Test-Ballance-20231108/TOP/SOLUTIONS/bal-3110_v3.pos"
+
+
+OUT = analyze_POS("TOP", OCC=2, PEG=8, METHOD = "RTK-R10", PERIOD="60MIN", POS_ffn, FMT_OPT = 2, qualfilt = 2)
+
+
+
+
 
 
 ```
+
+
+
+#FORMAL RUNS FOR REPORT
+
+```{r}
+
+
+PERDS = c("240MIN", "180MIN", "120MIN", "60MIN", "45MIN", "30MIN" )
+PERDS = c("180MIN" )
+
+RCVRS = c("JVD", "TOP", "CAR", "EML", "R10-Rover")
+METHODS = c("RTK-R10", "RTK-CORS-DNVK", "RTK-CORS-WRPA")
+# METHODS = c("RTK-CORS-DNVK")
+OCCS = c(1,2)
+OCCS = c(1)
+
+for (iMETHOD in METHODS){
+  for (iRCVR in RCVRS){
+    for (iOCC in OCCS){
+      if (iOCC==1){
+        for (iPERD in PERDS){
+          rtk_proc_anal(Rover=iRCVR, Occ=iOCC, Method=iMETHOD, Period=iPERD, plotdim = 3, replot_only = F)
+        }
+      }else{
+        for (iPERD in PERDS[4:7]){
+          rtk_proc_anal(Rover=iRCVR, Occ=iOCC, Method=iMETHOD, Period=iPERD, plotdim = 3, replot_only = F)
+        }
+      }
+      
+      
+      
+    }
+  }
+}
+
+
+
+
+
+
+```
+
+#Run analysis of collated data
+
+```{r}
+CollateDF_ffn =  "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/data/Field-Test-Ballance-20231108/SOLUTIONS/GNSS_PERFORMANCE_STATS_COLLATED.csv"
+ 
+D = read_csv(CollateDF_ffn)
+```
+
+
+```{r}
+
+D_240MIN = D %>% 
+  filter(MIN_ELAPSED >200) 
+
+g = ggplot(D_240MIN) + geom_point(aes(RCVR, M_ACC, color = METHOD  ), size  =3)
+# g = g + geom_errorbar(aes(x = RCVR, ymin = M_ACC-M_PREC, ymax = M_ACC + M_PREC, color = METHOD), width = .2) + geom_jitter()
+g = g + labs(x = "Receiver", y = "Accuracy (m)")
+# g = g + lims(y = c(0,2))
+g
+
+ggsave(filename = paste0(plotdir, "1004-Accuracy-240MINOCC-BY-METHOD.png"), g)
+
+```
+
+
+
+
+# ~~~~~~~~~~~~~~~~ #
+# Figure 2001 -  Accuracy-vs-Rcvr-by-Method
+# ~~~~~~~~~~~~~~~~ #
+
+```{r}
+
+fignum = 2001
+figdesc = "Accuracy-vs-Rcvr-by-Method"
+figfmt = "png"
+fig_ffn = paste0(plotdir, fignum,"-", figdesc, ".", figfmt)
+
+
+
+D_240MIN = D %>% 
+  filter(MIN_ELAPSED >200) 
+
+g = ggplot(D_240MIN) + geom_point(aes(RCVR, M_ACC, color = METHOD  ), size  =3)
+# g = g + geom_errorbar(aes(x = RCVR, ymin = M_ACC-M_PREC, ymax = M_ACC + M_PREC, color = METHOD), width = .2) + geom_jitter()
+g = g + labs(x = "Receiver", y = "Accuracy (m)")
+# g = g + lims(y = c(0,2))
+g
+
+ggsave(filename = fig_ffn, plot = g, width = 28, height = 16, units = "cm", bg = "white")
+
+
+```
+
 

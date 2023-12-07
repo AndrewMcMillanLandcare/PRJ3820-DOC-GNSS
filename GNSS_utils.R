@@ -4,6 +4,7 @@
 
 library(tidyverse)
 library(sf)
+library(readxl)
 library(mapview)
 library(plotly)
 library(ggforce)
@@ -20,6 +21,16 @@ crs_convert = function(csv_ffn = NULL, crs_src, crs_dst, plot_dst=T){
   
   
   # 
+  
+  # EPSG:9988     ITRF2020      Cartesian/Geocentric     Ellipsoid: GRS 1980
+  # EPSG:9990     ITRF2020      Geodetic  (degrees)      Ellipsoid: GRS 1980
+  
+  # EPSG:7789     ITRF2014      Cartesian/Geocentric     Ellipsoid: GRS 1980
+  # EPSG:7912     ITRF2014      Geodetic                 Ellipsoid: GRS 1980
+  
+  # EPSG:32760    UTM Zone 60S  Geodetic                 Ellipsoid: GRS 1980
+  
+  
   csv_ffn = NULL
   crs_src = 7912
   crs_dst = 2193
@@ -39,7 +50,33 @@ crs_convert = function(csv_ffn = NULL, crs_src, crs_dst, plot_dst=T){
   }
   
   
-  
+  crs_conv2 = function(DMS_LATLON = NULL, DD_LATLON = NULL, src_crs, dst_crs){
+    
+    
+    DMS_LATLON = c(-40,20,10.51917, 175,48,45.27946)
+    DMS_LATLON = c(-40,20,10.5481, 175,48,45.4390)
+    
+    src_crs = 9990
+    dst_crs = 32760
+    
+    
+    if (!is.null(DMS_LATLONG)){
+      
+      DD_LAT = sign(DMS_LATLON[1]) * (abs(DMS_LATLON[1]) + DMS_LATLON[2]/60 + DMS_LATLON[3]/3600)
+      DD_LON = sign(DMS_LATLON[4]) * (abs(DMS_LATLON[4]) + DMS_LATLON[5]/60 + DMS_LATLON[6]/3600)
+      
+      DD_LATLON = c(DD_LAT, DD_LON)
+      
+    }
+    
+    DF = data.frame(X = DD_LATLON[2], Y = DD_LATLON[1])
+    SF_src = st_as_sf(DF, coords = c("X","Y"), crs = "EPSG:7912")
+    SF_dst = st_transform(SF_src, crs = dst_crs)
+    SF_2193 = st_transform(SF_dst, crs = "EPSG:2193")
+    
+    sprintf("%.12f",st_coordinates(SF_dst))
+    sprintf("%.12f",st_coordinates(SF_2193))
+  }
   
   
   src_sf = st_as_sf(src_data, coords = c("LON_SRC", "LAT_SRC"), crs = crs_src) 
@@ -310,10 +347,11 @@ calc_acc_and_prec = function(GNSS_data, known_loc){
 
 read_POS = function(POS_ffn,FMT_OPT=NULL){
   
-  
-  if (is.null(FMT_OPT)){
-    lines = readLines(POS_ffn,100)
-    NSKIP = min(which(!( str_detect(lines, "^\\%"))))-1
+  lines = readLines(POS_ffn,100)
+  NSKIP = min(which(!( str_detect(lines, "^\\%"))))-1
+ 
+   if (is.null(FMT_OPT)){
+    
     D = read_csv(POS_ffn, skip = NSKIP, col_names =F, show_col_types = FALSE)
     HDRS = c("GPS_Week", "GPS_Time",  "Lat_DD",  "Lon_DD",  "Ht_ell", "Q",
              "nvsv","sdn", "sde", "sdu", "sdne" , "sdeu","sdun", "age" ,"ratio")
@@ -331,8 +369,8 @@ read_POS = function(POS_ffn,FMT_OPT=NULL){
     leapseconds_curr = 18
     
     if (FMT_OPT==2){
-      NSKIP = 25
-      D = read_csv(POS_ffn, skip = NSKIP, col_names =F)
+  
+          D = read_csv(POS_ffn, skip = NSKIP, col_names =F)
       HDRS = c("GPS_DateTime",   "Lat_DD",  "Lon_DD",  "Ht_ell", "Q",
                "nvsv","sdn", "sde", "sdu", "sdne" , "sdeu","sdun", "age" , "ratio")
       names(D) <- HDRS
@@ -347,7 +385,6 @@ read_POS = function(POS_ffn,FMT_OPT=NULL){
       
     } else {
       
-      NSKIP=12
       D = read_csv(POS_ffn, skip = NSKIP, col_names =F)
       HDRS = c("GPS_Week", "GPS_Time",  "Lat_DD",  "Lon_DD",  "Ht_ell", "Q",
                "nvsv","sdn", "sde", "sdu", "sdne" , "sdeu","sdun", "age" ,"ratio")
@@ -579,7 +616,14 @@ GPS_tm_2_UTC = function(gps_week, gps_sec_of_current_week){
 ### proc_rtk
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-proc_rtk = function(Rover, Occ, Method, Period, plotdim = 3, replot_only = F){
+
+# InputFilesOption:
+#   0 = Autonomous
+#   1 = PPK (Base Station Obs and Nav)
+#   2 = PPK (Base station Obs + Nav) + Precise EPH + Precise Clock
+
+
+proc_rtk = function(Rover, Occ, Method, Period, InputFilesOption = 2, plotdim = 3, replot_only = F){
   
   
   
@@ -652,24 +696,26 @@ proc_rtk = function(Rover, Occ, Method, Period, plotdim = 3, replot_only = F){
     Method == "RTK-R10" & Occ == 2 ~ paste0(fielddatadir_wsl, "R10-Base/RINEX211/01393120.23o"),
     Method == "RTK-CORS-DNVK" & Occ == 1 ~ paste0(fielddatadir_wsl, "POSITIONZ-DNVK/OCC1/dnvk3110_20.23o"),
     Method == "RTK-CORS-DNVK" & Occ == 2 ~ paste0(fielddatadir_wsl, "POSITIONZ-DNVK/OCC2/dnvk3120.23o"),
-    Method == "RTK-CORS-WANG" & Occ == 1 ~ paste0(fielddatadir_wsl, "POSITIONZ-WANG/OCC1/dnvk3110_20.23o"),
-    Method == "RTK-CORS-WANG" & Occ == 2 ~ paste0(fielddatadir_wsl, "POSITIONZ-WANG/OCC2/dnvk3120.23o"),
-    Method == "RTK-CORS-WRPA" & Occ == 1 ~ paste0(fielddatadir_wsl, "POSITIONZ-WRPA/OCC1/dnvk3110_20.23o"),
-    Method == "RTK-CORS-WRPA" & Occ == 2 ~ paste0(fielddatadir_wsl, "POSITIONZ-WRPA/OCC2/dnvk3120.23o"),
+    Method == "RTK-CORS-WANG" & Occ == 1 ~ paste0(fielddatadir_wsl, "POSITIONZ-WANG/OCC1/wang3110_20.23o"),
+    Method == "RTK-CORS-WANG" & Occ == 2 ~ paste0(fielddatadir_wsl, "POSITIONZ-WANG/OCC2/wang3120.23o"),
+    Method == "RTK-CORS-WRPA" & Occ == 1 ~ paste0(fielddatadir_wsl, "POSITIONZ-WRPA/OCC1/wrpa3110_20.23o"),
+    Method == "RTK-CORS-WRPA" & Occ == 2 ~ paste0(fielddatadir_wsl, "POSITIONZ-WRPA/OCC2/wrpa3120.23o"),
+    Method == "RTK-CORS-RDLV" & Occ == 1 ~ paste0(fielddatadir_wsl, "POSITIONZ-RDLV/OCC1/rdlv3110_20.23o"),
+    Method == "RTK-CORS-RDLC" & Occ == 2 ~ paste0(fielddatadir_wsl, "POSITIONZ-RDLV/OCC2/rdlv3120.23o"),
     
   )
   
   base_nav_ffn = case_when(
     Method == "RTK-R10" & Occ == 1 ~ paste0(fielddatadir_wsl, "R10-Base/RINEX211/01393111.23n"),
     Method == "RTK-R10" & Occ == 2 ~ paste0(fielddatadir_wsl, "R10-Base/RINEX211/01393120.23n"),
-    Method == "RTK-CORS" & Occ == 1 ~ paste0(fielddatadir_wsl, "POSITIONZ-DNVK/OCC1/auto3110_20.23n"),
-    Method == "RTK-CORS" & Occ == 2 ~ paste0(fielddatadir_wsl, "POSITIONZ-DNVK/OCC1/auto3120.23n"),
-    Method == "RTK-CORS-DNVK" & Occ == 1 ~ paste0(fielddatadir_wsl, "POSITIONZ-DNVK/OCC1/dnvk3110_20.23n"),
-    Method == "RTK-CORS-DNVK" & Occ == 2 ~ paste0(fielddatadir_wsl, "POSITIONZ-DNVK/OCC2/dnvk3120.23n"),
-    Method == "RTK-CORS-WANG" & Occ == 1 ~ paste0(fielddatadir_wsl, "POSITIONZ-WANG/OCC1/wang3110_20.23n"),
-    Method == "RTK-CORS-WANG" & Occ == 2 ~ paste0(fielddatadir_wsl, "POSITIONZ-WANG/OCC2/wang3120.23n"),
-    Method == "RTK-CORS-WRPA" & Occ == 1 ~ paste0(fielddatadir_wsl, "POSITIONZ-WRPA/OCC1/wrpa3110_20.23n"),
-    Method == "RTK-CORS-WRPA" & Occ == 2 ~ paste0(fielddatadir_wsl, "POSITIONZ-WRPA/OCC2/wrpa3120.23n"),
+    Method == "RTK-CORS-DNVK" & Occ == 1 ~ paste0(fielddatadir_wsl, "POSITIONZ-DNVK/OCC1/auto3110_20.23n"),
+    Method == "RTK-CORS-DNVK" & Occ == 2 ~ paste0(fielddatadir_wsl, "POSITIONZ-DNVK/OCC2/auto3120.23n"),
+    Method == "RTK-CORS-WANG" & Occ == 1 ~ paste0(fielddatadir_wsl, "POSITIONZ-WANG/OCC1/auto3110_20.23n"),
+    Method == "RTK-CORS-WANG" & Occ == 2 ~ paste0(fielddatadir_wsl, "POSITIONZ-WANG/OCC2/auto3120.23n"),
+    Method == "RTK-CORS-WRPA" & Occ == 1 ~ paste0(fielddatadir_wsl, "POSITIONZ-WRPA/OCC1/auto3110_20.23n"),
+    Method == "RTK-CORS-WRPA" & Occ == 2 ~ paste0(fielddatadir_wsl, "POSITIONZ-WRPA/OCC2/auto3120.23n"),
+    Method == "RTK-CORS-RDLV" & Occ == 1 ~ paste0(fielddatadir_wsl, "POSITIONZ-RDLV/OCC1/auto3110_20.23n"),
+    Method == "RTK-CORS-RDLV" & Occ == 2 ~ paste0(fielddatadir_wsl, "POSITIONZ-RDLV/OCC2/auto3120.23n"),
     
   )
   
@@ -687,58 +733,97 @@ proc_rtk = function(Rover, Occ, Method, Period, plotdim = 3, replot_only = F){
     
   )
   
-  base_nav_ffn = case_when(
-    Method == "RTK-R10" & Occ == 1 ~ paste0(fielddatadir_wsl, "R10-Base/RINEX211/01393111.23n"),
-    Method == "RTK-R10" & Occ == 2 ~ paste0(fielddatadir_wsl, "R10-Base/RINEX211/01393120.23n"),
-    Method == "RTK-CORS" & Occ == 1 ~ paste0(fielddatadir_wsl, "POSITIONZ-DNVK/OCC1/auto3110_20.23n"),
-    Method == "RTK-CORS" & Occ == 2 ~ paste0(fielddatadir_wsl, "POSITIONZ-DNVK/OCC1/auto3120.23n"),
-    
+  
+  FileTypeVec =     c("Rover_obs", "Base_obs", "Base_nav", "Precise_eph", "Precise_clk")
+  FilesReqd_IFO_0 = c(1          ,  0        ,      0    ,    0         ,     0        )
+  FilesReqd_IFO_1 = c(1          ,  1        ,      1    ,    0         ,     0        )
+  FilesReqd_IFO_2 = c(1          ,  1        ,      1    ,    1         ,     1        )
+  
+  FilesReqd = case_when(
+    InputFilesOption == 0 ~ FilesReqd_IFO_0,
+    InputFilesOption == 1 ~ FilesReqd_IFO_1,
+    InputFilesOption == 2 ~ FilesReqd_IFO_2
   )
   
+  FilesList = c(rover_ffn,base_obs_ffn, base_nav_ffn, precise_eph_ffn, precise_clk_ffn )
+  
+  InputFileTable = data.frame(
+    FileType = FileTypeVec, 
+    Reqd = FilesReqd, 
+    Found = 0, 
+    FileName = FilesList) %>% 
+    filter(Reqd==1) 
+  
+  NR = nrow(InputFileTable)
+  
+  for (i in 1:NR){
+    
+    cfilename = InputFileTable$FileName[i]
+    if (file.exists(wineq_path(cfilename))){InputFileTable$Found[i]=1}
+  }
   
   
+  ALL_FOUND = sum(InputFileTable$Found) == NR
   
-  files_fnd = 0
+  if (ALL_FOUND){
+    print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+    print("!!!......found all files........!!!!!!!!!")
+    print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+  } else {
+    
+    InputFileTable_badrows = InputFileTable %>% 
+      filter(Found==0)
+    
+    for (ii in 1:nrow(InputFileTable_badrows)){
+      
+      print(paste("Input File", InputFileTable_badrows$FileName[ii],"not found ..."))
+      
+    }
+    
+    
+  }
   
-  if (file.exists(wineq_path(rover_ffn))){
-    print(paste("Rover file:", rover_ffn, "exists"))
-    files_fnd = files_fnd + 1
-  }else{
-    print(paste("Rover file:", rover_ffn, "not found"))
-  } 
   
-  if (file.exists(wineq_path(base_obs_ffn))){
-    print(paste("Base obs file:", base_obs_ffn, "exists"))
-    files_fnd = files_fnd + 1
-  }else{
-    print(paste("Base obs file:", base_obs_ffn, "not found"))
-  } 
+  # 
+  # if (file.exists(wineq_path(rover_ffn))){
+  #   print(paste("Rover file:", rover_ffn, "exists"))
+  #   files_fnd = files_fnd + 1
+  # }else{
+  #   print(paste("Rover file:", rover_ffn, "not found"))
+  # } 
+  # 
+  # if (file.exists(wineq_path(base_obs_ffn))){
+  #   print(paste("Base obs file:", base_obs_ffn, "exists"))
+  #   files_fnd = files_fnd + 1
+  # }else{
+  #   print(paste("Base obs file:", base_obs_ffn, "not found"))
+  # } 
+  # 
+  # if (file.exists(wineq_path(base_nav_ffn))){
+  #   print(paste("Base nav file:", base_nav_ffn, "exists"))
+  #   files_fnd = files_fnd + 1
+  # }else{
+  #   print(paste("Base nav file:", base_nav_ffn, "not found"))
+  # } 
+  # 
+  # if (file.exists(wineq_path(precise_eph_ffn))){
+  #   print(paste("Base nav file:", precise_eph_ffn, "exists"))
+  #   files_fnd = files_fnd + 1
+  # }else{
+  #   print(paste("Preceise ephemeris data file:", precise_eph_ffn, "not found"))
+  # } 
+  # 
+  # if (file.exists(wineq_path(precise_clk_ffn))){
+  #   print(paste("Base nav file:", precise_clk_ffn, "exists"))
+  #   files_fnd = files_fnd + 1
+  # }else{
+  #   print(paste("Base nav file:", precise_clk_ffn, "not found"))
+  # } 
+  # 
+  # print("=================================================================")
+  # files_fnd
   
-  if (file.exists(wineq_path(base_nav_ffn))){
-    print(paste("Base nav file:", base_nav_ffn, "exists"))
-    files_fnd = files_fnd + 1
-  }else{
-    print(paste("Base nav file:", base_nav_ffn, "not found"))
-  } 
-  
-  if (file.exists(wineq_path(precise_eph_ffn))){
-    print(paste("Base nav file:", precise_eph_ffn, "exists"))
-    files_fnd = files_fnd + 1
-  }else{
-    print(paste("Preceise ephemeris data file:", precise_eph_ffn, "not found"))
-  } 
-  
-  if (file.exists(wineq_path(precise_clk_ffn))){
-    print(paste("Base nav file:", precise_clk_ffn, "exists"))
-    files_fnd = files_fnd + 1
-  }else{
-    print(paste("Base nav file:", precise_clk_ffn, "not found"))
-  } 
-  
-  print("=================================================================")
-  files_fnd
-  
-  if (files_fnd==5){
+  if (ALL_FOUND){
     
     # Build the name of the solution file
     Solution_fn = paste0("BAL_OCC",Occ,"_", Rover,"_", Method, "_", Period, ".pos" )
@@ -856,7 +941,7 @@ proc_rtk = function(Rover, Occ, Method, Period, plotdim = 3, replot_only = F){
 # analyze_POS: Analyses an RTKLIB Solution "POS" file (calls function read_POS)
 #-----------------------------------------------------------------------#
 
-analyze_POS = function(RCVR, OCC, PEG, METHOD = NULL, PERIOD, POS_ffn, plotdir = "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/plots/Solution-Plots/" , plotdim = 3, limax = T, tm_win = NULL, FMT_OPT=1){
+analyze_POS = function(RCVR, OCC, PEG, METHOD = NULL, PERIOD, POS_ffn, plotdir = "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/plots/Solution-Plots/" , plotdim = 3, limax = T, tm_win = NULL, FMT_OPT=1, qualfilt = NULL){
   # 
   # RCVR = "JVD"
   # OCC = 2
@@ -889,8 +974,15 @@ analyze_POS = function(RCVR, OCC, PEG, METHOD = NULL, PERIOD, POS_ffn, plotdir =
   
   
   
-  D = read_POS(POS_ffn)
+  D = read_POS(POS_ffn, FMT_OPT = FMT_OPT)
   
+  if (!is.null(qualfilt)){
+    
+    D = D %>% filter(Q %in% qualfilt)
+    
+    
+    
+  }
   
   
   if (!is.null(tm_win)){
@@ -942,7 +1034,7 @@ analyze_POS = function(RCVR, OCC, PEG, METHOD = NULL, PERIOD, POS_ffn, plotdir =
   
   OUTPUT_AP_table = calc_acc_and_prec(CRDS, known_loc)
   
- 
+  
   
   #-----------------------------------------------------------------------#
   # collate_results
@@ -982,7 +1074,6 @@ analyze_POS = function(RCVR, OCC, PEG, METHOD = NULL, PERIOD, POS_ffn, plotdir =
   
   
   
-  write_csv(DATAROW, CollateDF_ffn)
   
   COLLATED_DATA = read_csv(CollateDF_ffn)
   COLLATED_DATA_NEW = COLLATED_DATA %>% bind_rows(DATAROW)
@@ -1014,6 +1105,12 @@ rtk_proc_anal = function(Rover, Occ, Method, Period, plotdim = 3, replot_only = 
   # gps_week = c(2287,2288)
   # gps_sec_of_current_week = c(250846,250846)
   
+  
+  print(paste("==================================================================="))
+  print(paste("==================================================================="))
+  print(paste("New Analysis: Rover =",Rover,"Occ = ", Occ, "Method = ",Method, "Period = ", Period))
+  print(paste("==================================================================="))
+  print(paste("==================================================================="))
   #set the plot directory
   PLOTDN = "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/plots/Solution-Plots/"
   
