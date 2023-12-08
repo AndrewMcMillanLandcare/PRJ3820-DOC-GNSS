@@ -349,8 +349,8 @@ read_POS = function(POS_ffn,FMT_OPT=NULL){
   
   lines = readLines(POS_ffn,100)
   NSKIP = min(which(!( str_detect(lines, "^\\%"))))-1
- 
-   if (is.null(FMT_OPT)){
+  
+  if (is.null(FMT_OPT)){
     
     D = read_csv(POS_ffn, skip = NSKIP, col_names =F, show_col_types = FALSE)
     HDRS = c("GPS_Week", "GPS_Time",  "Lat_DD",  "Lon_DD",  "Ht_ell", "Q",
@@ -369,8 +369,8 @@ read_POS = function(POS_ffn,FMT_OPT=NULL){
     leapseconds_curr = 18
     
     if (FMT_OPT==2){
-  
-          D = read_csv(POS_ffn, skip = NSKIP, col_names =F)
+      
+      D = read_csv(POS_ffn, skip = NSKIP, col_names =F)
       HDRS = c("GPS_DateTime",   "Lat_DD",  "Lon_DD",  "Ht_ell", "Q",
                "nvsv","sdn", "sde", "sdu", "sdne" , "sdeu","sdun", "age" , "ratio")
       names(D) <- HDRS
@@ -408,7 +408,7 @@ read_POS = function(POS_ffn,FMT_OPT=NULL){
 # figure 1. the xy plot of the solution
 #======================================================================================#
 
-anl_pos_fig_1 = function(D_sf, RCVR, OCC, PEG, PERIOD, known_loc, plotdir, plotdim, limax, CEP=NULL){
+anl_pos_fig_1 = function(D_sf, RCVR, OCC, PEG, PERIOD, METHOD, known_loc, plotdir, plotdim, limax, CEP=NULL){
   
   CRDS = D_sf %>% 
     st_coordinates() %>%  as.data.frame() %>% as_tibble() %>% 
@@ -514,7 +514,7 @@ anl_pos_fig_1 = function(D_sf, RCVR, OCC, PEG, PERIOD, known_loc, plotdir, plotd
   # plot_subdn = paste0(plotdir, RCVR, "/")
   # if (!dir.exists(plot_subdn)){dir.create(plot_subdn)}
   
-  plot_fname_g1 = paste0(RCVR,"-OCC#", OCC, "-PEG#", PEG,"-", PERIOD,".png" )
+  plot_fname_g1 = paste0(RCVR,"-OCC#", OCC, "-PEG#", PEG,"-Method-",METHOD,"-", PERIOD,".png" )
   plot_ffname_g1 = paste0(plotdir, plot_fname_g1)
   ggsave(plot_ffname_g1, g1, width = 18, height =18, units = 'cm')
   
@@ -570,6 +570,11 @@ anl_pos_quantify_error = function(known_loc, D_sf){
 }
 
 
+#======================================================================================#
+# figure 3. DISTRIBUTION OF ERROR
+#======================================================================================#
+
+# anl_pos_quantify_error = function(known_loc, D_sf){
 
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 ### wineq_path
@@ -905,8 +910,7 @@ proc_rtk = function(Rover, Occ, Method, Period, InputFilesOption = 2, plotdim = 
       # print(paste("Done"))
       # print(paste("+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"))
       
-    }
-    
+    } 
     
     # PLOTDN = paste0("C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/plots/Solution-Plots/", Rover, "/", Method, "/")
     # if (!dir.exists(PLOTDN)){dir.create(PLOTDN, recursive = T)}
@@ -1018,7 +1022,7 @@ analyze_POS = function(RCVR, OCC, PEG, METHOD = NULL, PERIOD, POS_ffn, plotdir =
   
   
   
-  OUTPUT_fig1_g = anl_pos_fig_1(D_sf, RCVR, OCC, PEG, PERIOD,known_loc,  plotdim = 3, plotdir, limax)
+  OUTPUT_fig1_g = anl_pos_fig_1(D_sf, RCVR, OCC, PEG, METHOD, PERIOD,known_loc,  plotdim = 3, plotdir, limax)
   
   #get the semimajor angle
   # SM = find_semi_major(CRDS, known_loc)
@@ -1070,7 +1074,8 @@ analyze_POS = function(RCVR, OCC, PEG, METHOD = NULL, PERIOD, POS_ffn, plotdir =
     DRMS_65 = OUTPUT_AP_table$DRMS_65,
     DRMS_95 = OUTPUT_AP_table$DRMS_95,
     CEP_50 = OUTPUT_AP_table$CEP_50,
-    CEP_95 = OUTPUT_AP_table$CEP_95)
+    CEP_95 = OUTPUT_AP_table$CEP_95,
+  )
   
   
   
@@ -1115,7 +1120,8 @@ rtk_proc_anal = function(Rover, Occ, Method, Period, plotdim = 3, replot_only = 
   PLOTDN = "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/plots/Solution-Plots/"
   
   #process the raw GNSS data
-  RTKLIB_RESULTS = proc_rtk(Rover, Occ, Method, Period, plotdim = 3, replot_only = F)
+  RTKLIB_RESULTS = proc_rtk(Rover, Occ, Method, Period, plotdim = 3, replot_only = replot_only)
+  
   
   #grab the metadata
   pegnum = RTKLIB_RESULTS[[1]]$Peg
@@ -1132,5 +1138,304 @@ rtk_proc_anal = function(Rover, Occ, Method, Period, plotdim = 3, replot_only = 
   
 }
 
+#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+### get_qual_stats
+#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
+get_qual_stats = function(POS_data_input = NULL, POS_ffn = NULL){
+  
+  POS_ffn = "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/data/Field-Test-Ballance-20231108/SOLUTIONS/BAL_OCC1_R10-Rover_RTK-CORS-WRPA_180MIN.pos"
+  POS_data_input = NULL
+  
+  if (is.null(POS_data_input) & !is.null(POS_ffn)){
+    
+    POS_data = read_POS(POS_ffn)
+    
+    
+  } else if (!is.null(POS_data) & is.null(POS_ffn)){
+    
+    POS_data = read_POS(POS_data_input)
+    
+  }
+  
+  
+  qual_stats = POS_data %>% group_by(Q) %>%
+    summarise(qual_n = length(Q)) %>% 
+    mutate(qual_perc = 100 * qual_n/sum(qual_n))
+  
+  return(qual_stats)
+  
+  
+}
+
+
+#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+### qual_based_soln
+#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+qual_based_soln = function(POS_data_input = NULL, POS_ffn = NULL, known_coords = NULL){
+  
+  testmode = T
+  
+  if (testmode){
+    POS_ffn = "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/data/Field-Test-Ballance-20231108/SOLUTIONS/BAL_OCC1_R10-Rover_RTK-CORS-WRPA_180MIN.pos"
+    POS_data_input = NULL
+    known_coords = c(1838917.665,	5531119.762,	102.372)
+    known_coords = c(1839374.859,	5531494.916,	79.451)
+  }
+  
+  # a funtion to add columns based on known coordinates
+  add_diff_from_known = function(POS_DF, known_coords){
+    
+    elev_known = length(known_coords)==3
+    
+    POS_DF = POS_DF %>% 
+      mutate(
+        KNOWN_POS_X = known_coords[1],
+        KNOWN_POS_Y = known_coords[2],
+        KNOWN_POS_Z = ifelse(elev_known, known_coords[3], NA),
+        DEL_LON = LON - KNOWN_POS_X,
+        DEL_LAT = LAT - KNOWN_POS_Y,
+        DEL_ELE = ifelse(elev_known,Ht_ell - KNOWN_POS_Z,NA),
+        DEL_LON_SQ =  DEL_LON^2,
+        DEL_LAT_SQ =  DEL_LAT^2,
+        DEL_LATLON = sqrt(DEL_LON_SQ + DEL_LAT_SQ)
+      )
+  }
+  
+  calc_POS_data_stats = function(POS_data, known_coords=NULL){
+    
+    if (!is.null(known_coords)){
+      POS_data_all_stats = POS_data %>% 
+        summarise(
+          LAT_avg = mean(LAT),
+          LON_avg = mean(LON),
+          ELE_avg = mean(Ht_ell),
+          LAT_sd = sd(LAT),
+          LON_sd = sd(LON),
+          ELE_sd = sd(Ht_ell),
+          DEL_LON_avg = mean(DEL_LON),
+          DEL_LAT_avg = mean(DEL_LAT),
+          DEL_LON_sd = sd(DEL_LON),
+          DEL_LAT_sd = sd(DEL_LAT),
+          KNOWN_POS_X = known_coords[1],
+          KNOWN_POS_Y = known_coords[2],
+          M_ACC = sqrt( (LON_avg-KNOWN_POS_X)^2 + (LAT_avg-KNOWN_POS_Y)^2  ),
+          M_PREC = sqrt(DEL_LON_sd^2 + DEL_LAT_sd^2),
+          
+          LON_avg_fixed = mean(LON[Q==1]),
+          LAT_avg_fixed = mean(LAT[Q==1]),
+          
+          LON_avg_float = mean(LON[Q==2]),
+          LAT_avg_float = mean(LAT[Q==2]),
+          
+          LON_avg_fixed_or_float = mean(LON[Q==1|Q==2]),
+          LAT_avg_fixed_or_float = mean(LAT[Q==1|Q==2]),
+          
+          M_ACC_all = sqrt( (LON_avg-KNOWN_POS_X)^2 + (LAT_avg-KNOWN_POS_Y)^2  ),
+          M_ACC_fixed = sqrt( (LON_avg_fixed - KNOWN_POS_X)^2 + (LAT_avg_fixed - KNOWN_POS_Y)^2),
+          M_ACC_float = sqrt( (LON_avg_float - KNOWN_POS_X)^2 + (LAT_avg_float - KNOWN_POS_Y)^2),
+          M_ACC_fixed_or_float = sqrt( (LON_avg_fixed_or_float - KNOWN_POS_X)^2 + (LAT_avg_fixed_or_float - KNOWN_POS_Y)^2),
+          
+        )
+      
+    }else{
+      POS_data_all_stats = POS_data %>% 
+        summarise(
+          LAT_avg = mean(LAT),
+          LON_avg = mean(LON),
+          ELE_avg = mean(Ht_ell),
+          LAT_sd = sd(LAT),
+          LON_sd = sd(LON),
+          ELE_sd = sd(Ht_ell),
+          M_PREC = sqrt(LON_sd^2 + LAT_sd^2)
+        )
+    }
+    return(POS_data_all_stats)
+  }
+  
+  
+  #work out if the input is a file name or a data framne
+  if (is.null(POS_data_input) & !is.null(POS_ffn)){
+    POS_data = read_POS(POS_ffn)
+  } else if (!is.null(POS_data) & is.null(POS_ffn)){
+    POS_data = read_POS(POS_data_input)
+  }
+  
+  #convert coordinates
+  POS_data = convert_crs_df(POS_data, src_crs = 4326, dst_crs = 2193, 
+                            input_coord_labs = c("Lon_DD", "Lat_DD"),
+                            output_coord_labs = c("LON", "LAT"))
+  
+  
+  # if known coordinates are supplied then create a boolean called pos_known
+  if (!is.null(known_coords)){pos_known = T}else{pos_known = T}
+  
+  # if known coordinates are supplied then add difference columns
+  if (pos_known){POS_data = add_diff_from_known(POS_data, known_coords) }
+  
+  
+  
+ 
+  POS_data_stats = calc_POS_data_stats(POS_data, known_coords = known_coords) 
+  
+  print(t(POS_data_stats))
+  
+  POS_data_fixed = POS_data_all %>% filter(Q==1)
+  
+  
+  return(qual_stats)
+  
+  
+}
+
+
+#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+### convert_crs_df: input a data frame with X and Y in one projection
+###        output data frame with transformed coordinates
+#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+#+
+
+convert_crs_df = function(df, src_crs = 4326, dst_crs = 2193, 
+                          input_coord_labs = c("Lon_DD", "Lat_DD"),
+                          output_coord_labs = c("LON", "LAT")){
+  
+  df = SOLN_DATA
+  
+  transformed_coords = df %>% 
+    st_as_sf(coords = coord_labs, crs = src_crs) %>% 
+    st_transform(crs = dst_crs) %>% 
+    st_coordinates() %>% 
+    as_tibble() 
+  
+  names(transformed_coords) = output_coord_labs
+  
+  df_out = df %>% bind_cols(transformed_coords)
+  
+  return(df_out)
+  
+  
+}
+
+
+
+proc_rtk_generic = function(InputFile_ffn = NULL, Output_ffn,Rover_obs_ffn, Base_obs_ffn, Base_nav_ffn, Precise_eph, Precise_clk){
+  
+  testmode = T
+  if (testmode){
+    
+    
+    wsl_rootDrive = "/mnt/c/"
+    w10_rootDrive = "C:/"
+    
+    root_wsl = paste0(wsl_rootDrive, "Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/data/Field-Test-Ballance-20231108/")
+    root_w10 = paste0(w10_rootDrive, "Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/data/Field-Test-Ballance-20231108/")
+    
+    rover_obs_ffn     = paste0(root_wsl, "R10-Base/Bens-Rinex-Files/01393111.23o")
+    base_obs_ffn  = paste0(root_wsl,"POSITIONZ-DNVK/OCC1/dnvk3110_20.23o")
+    base_nav_ffn  = paste0(root_wsl,"POSITIONZ-DNVK/OCC1/auto3110_20.23n")
+    precise_eph_ffn = paste0(root_wsl)
+    precise_clk_ffn = paste0(root_wsl, "PREC-EPH-CLK/CODE Precise/COD0OPSFIN_20233110000_01D_05S_CLK.CLK")
+    Solution_ffn  = paste0(root_wsl,"SOLUTIONS/R10-BASE-RTKLIB_SOLUTION.pos")
+    
+    
+    w10_Solution_ffn = paste0(root_w10,"SOLUTIONS/R10-BASE-RTKLIB_SOLUTION.pos")
+    
+    InputFile_ffn = "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/data/proc_rtk_generic_filelists/RTKLIB-inputfilelist-R10-Base-01393120.txt"
+    
+    
+  }
+  
+  if(!is.null(InputFile_ffn)){
+    
+    lines = readLines(InputFile_ffn)
+    
+    for (iline in lines){
+      
+      
+      
+      varname = str_trim(str_split(iline,"\\=")[[1]][1])
+      ffn_value = str_trim(str_split(iline,"\\=")[[1]][2])
+      assign(varname, ffn_value)
+      print(varname)
+      print(ffn_value)
+    }
+  }
+  
+  
+  qm = "\""
+  cmd_stub = paste0("wsl rnx2rtkp -o ", qm, Solution_ffn, qm," -p 3 -f 3 -s \",\" -c")
+  
+  # 
+  # 
+  # start_AND_stop = str_detect(Period, "_TO_")|str_detect(Period, "_to_")
+  # 
+  # if (start_AND_stop){
+  #   start_MIN = as.numeric(str_extract(Period, "^\\d{1,4}"))
+  #   end_MIN = as.numeric(str_extract(Period, "(?<=\\d{1,4}MIN\\_TO\\_)\\d{1,4}"))
+  # } else {
+  #   start_MIN = 0
+  #   end_MIN = as.numeric(str_extract(Period, "^\\d{1,4}"))
+  # }
+  # 
+  # 
+  #get the start time of the measurement
+  # 
+  # tm_start_obs = current_metadata_row$OCC_START
+  # tm_end_obs = current_metadata_row$OCC_END
+  # 
+  # tm_start_proc = tm_start_obs + minutes(start_MIN)
+  # tm_end_proc = tm_start_obs + minutes(end_MIN)
+  # 
+  # fmt = "%Y/%m/%d %H:%M:%S"
+  # 
+  # tm_start_proc_txt = strftime(tm_start_proc, fmt, tz = "UTC")
+  # tm_end_proc_txt = strftime(tm_end_proc, fmt, tz = "UTC")
+  
+  # timeSliceString = paste0("-ts ", tm_start_proc_txt, " -te ", tm_end_proc_txt) 
+  
+  # cmd_stub_mdf = paste0(cmd_stub, " ", timeSliceString)
+  #   
+  # } else {
+  #   
+  #   cmd_stub_mdf = cmd_stub
+  #   
+  # }
+  # 
+  #now create full CMD string
+  
+  
+  cmd_stub_mdf = cmd_stub 
+  
+  CMD = paste0(cmd_stub_mdf,  " ",
+               qm, rover_obs_ffn, qm, " ",
+               qm, base_obs_ffn, qm, " ",
+               qm, base_nav_ffn, qm, " ",
+               qm, precise_eph_ffn, qm, " ",
+               qm, precise_clk_ffn, qm)
+  
+  
+  
+  print(CMD)
+  
+  system(CMD)
+  
+  SOLN_DATA = read_POS(wineq_path(Solution_ffn))
+  
+  QUAL_STATS = get_qual_stats(SOLN_DATA)
+  
+  
+  
+  print(paste("+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"))
+  print(paste("++++   Finished processing data from Rover file:", rover_obs_ffn))
+  # print(paste("++++   Time Period: ", Period))
+  print(QUAL_STATS)
+  print(paste("++++   Solution saved to: ", basename(Solution_ffn)))
+  print(paste("++++   in directory: ", dirname(Solution_ffn)))
+  print(paste("+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"))
+  # print(paste("Now plotting results"))
+  # print(paste("Done"))
+  # print(paste("+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"))
+  
+} 
 

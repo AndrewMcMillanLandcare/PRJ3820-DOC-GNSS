@@ -720,7 +720,7 @@ rtk_proc_anal(Rover="JVD", Occ=1, Method="RTK-R10", Period="", plotdim = 3, repl
 POS_ffn = "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/data/Field-Test-Ballance-20231108/TOP/SOLUTIONS/bal-3110_v3.pos"
 
 
-OUT = analyze_POS("TOP", OCC=2, PEG=8, METHOD = "RTK-R10", PERIOD="60MIN", POS_ffn, FMT_OPT = 2, qualfilt = 2)
+OUT = analyze_POS("TOP", OCC=2, PEG=8, METHOD = "RTK-R10", PERIOD="60MIN", POS_ffn, FMT_OPT = 2, qualfilt = NULL)
 
 
 
@@ -737,13 +737,14 @@ OUT = analyze_POS("TOP", OCC=2, PEG=8, METHOD = "RTK-R10", PERIOD="60MIN", POS_f
 
 
 PERDS = c("240MIN", "180MIN", "120MIN", "60MIN", "45MIN", "30MIN" )
-PERDS = c("180MIN" )
+# PERDS = c("60MIN" )
 
 RCVRS = c("JVD", "TOP", "CAR", "EML", "R10-Rover")
+RCVRS = c("R10-Rover")
 METHODS = c("RTK-R10", "RTK-CORS-DNVK", "RTK-CORS-WRPA")
 # METHODS = c("RTK-CORS-DNVK")
 OCCS = c(1,2)
-OCCS = c(1)
+OCCS = c(2)
 
 for (iMETHOD in METHODS){
   for (iRCVR in RCVRS){
@@ -825,4 +826,117 @@ ggsave(filename = fig_ffn, plot = g, width = 28, height = 16, units = "cm", bg =
 
 ```
 
+
+# ~~~~~~~~~~~~~~~~ #
+# Figure 2002 -  Accuracy-vs-Rcvr-by-Method-180min
+# ~~~~~~~~~~~~~~~~ #
+
+```{r}
+
+fignum = 2002
+figdesc = "Accuracy-vs-Rcvr-by-Method-180min"
+figfmt = "png"
+fig_ffn = paste0(plotdir, fignum,"-", figdesc, ".", figfmt)
+
+
+
+D_SEL = D %>% 
+  filter(MIN_ELAPSED >140 & MIN_ELAPSED <200) 
+
+g = ggplot(D_SEL) + geom_point(aes(RCVR, M_ACC, color = METHOD  ), size  =3)
+# g = g + geom_errorbar(aes(x = RCVR, ymin = M_ACC-M_PREC, ymax = M_ACC + M_PREC, color = METHOD), width = .2) + geom_jitter()
+g = g + labs(x = "Receiver", y = "Accuracy (m)")
+# g = g + lims(y = c(0,2))
+g
+
+ggsave(filename = fig_ffn, plot = g, width = 28, height = 16, units = "cm", bg = "white")
+
+
+```
+
+
+# check
+
+```{r}
+
+ffn = "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/data/Field-Test-Ballance-20231108/SOLUTIONS/BAL_OCC1_R10-Rover_RTK-R10_180MIN.pos"
+
+known_coords = c(1838917.665,	5531119.762)
+
+D = read_POS(ffn) %>% 
+  st_as_sf(coords = c("Lon_DD","Lat_DD"), crs = "EPSG:4326") %>% 
+  st_transform(crs = 2193) 
+
+COORDS = st_coordinates(D) %>% 
+  as_tibble() %>% 
+  mutate(
+    X_dev = X-mean(X),
+    Y_dev = Y-mean(Y),
+    X_filt_1sd = ifelse(abs(X_dev) > sd(X), NA, X),
+    Y_filt_1sd = ifelse(abs(Y_dev) > sd(Y), NA, Y),
+    X_filt_2sd = ifelse(abs(X_dev) > 2*sd(X), NA, X),
+    Y_filt_2sd = ifelse(abs(Y_dev) > 2*sd(Y), NA, Y),
+    X_filt_3sd = ifelse(abs(X_dev) > 3*sd(X), NA, X),
+    Y_filt_3sd = ifelse(abs(Y_dev) > 3*sd(Y), NA, Y),
+    X_filt_6sd = ifelse(abs(X_dev) > 6*sd(X), NA, X),
+    Y_filt_6sd = ifelse(abs(Y_dev) > 6*sd(Y), NA, Y)
+  )
+
+
+
+COORDS_SMY = COORDS %>% 
+  summarise(
+    Xmean = mean(X),
+    Ymean = mean(Y),
+    X_filt_1sd_mean = mean(X_filt_1sd, na.rm = T),
+    Y_filt_1sd_mean = mean(Y_filt_1sd, na.rm = T),
+    X_filt_2sd_mean = mean(X_filt_2sd, na.rm = T),
+    Y_filt_2sd_mean = mean(Y_filt_2sd, na.rm = T),
+    X_filt_3sd_mean = mean(X_filt_3sd, na.rm = T),
+    Y_filt_3sd_mean = mean(Y_filt_3sd, na.rm = T),
+    X_filt_6sd_mean = mean(X_filt_6sd, na.rm = T),
+    Y_filt_6sd_mean = mean(Y_filt_6sd, na.rm = T),
+    
+    
+  ) %>% 
+  mutate(
+    
+    ACC_no_filt = sqrt( (known_coords[1] - Xmean)^2 + (known_coords[2] - Ymean)^2),
+    ACC_1sd_filt = sqrt( (known_coords[1] - X_filt_1sd_mean)^2 + (known_coords[2] - Y_filt_1sd_mean)^2),
+    ACC_2sd_filt = sqrt( (known_coords[1] - X_filt_2sd_mean)^2 + (known_coords[2] - Y_filt_2sd_mean)^2),
+    ACC_3sd_filt = sqrt( (known_coords[1] - X_filt_3sd_mean)^2 + (known_coords[2] - Y_filt_3sd_mean)^2),
+    ACC_6sd_filt = sqrt( (known_coords[1] - X_filt_6sd_mean)^2 + (known_coords[2] - Y_filt_6sd_mean)^2)
+    
+    
+    
+  )
+  
+  print(COORDS_SMY %>% select(contains("ACC")))
+
+D_smy = D %>% summarise(
+  
+  LAT = mean(Lat_DD), 
+  LON = mean(Lon_DD),
+  LAT_sd = sd(Lat_DD),
+  LON_sd = sd(Lon_DD),
+  )
+
+D = 
+
+sf = D_smy 
+
+sf_2193 = sf %>% st_transform(crs = 2193)
+mapview(sf_2193)
+
+sf_2193_coords = st_coordinates(sf_2193)
+
+
+del_X = sf_2193_coords[1] - known_coords[1]
+del_Y = sf_2193_coords[2] - known_coords[2]
+
+ACC = sqrt(del_X^2 + del_X^2)
+
+
+
+```
 
