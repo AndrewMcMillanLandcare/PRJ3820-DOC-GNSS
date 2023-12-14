@@ -5,6 +5,7 @@ output: html_notebook
 editor_options: 
   chunk_output_type: console
 chunk_output_type: console
+chunk_output_type: console
 ---
 
 
@@ -730,6 +731,23 @@ OUT = analyze_POS("TOP", OCC=2, PEG=8, METHOD = "RTK-R10", PERIOD="60MIN", POS_f
 ```
 
 
+# Processing of R10-Base using Precise Emphemeris/Clock and DNVK CORS
+```{r}
+
+# POS_ffn = "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/data/Field-Test-Ballance-20231108/TOP/SOLUTIONS/bal-3110_v3.pos"
+# 
+# 
+# OUT = analyze_POS("TOP", OCC=2, PEG=8, METHOD = "RTK-R10", PERIOD="60MIN", POS_ffn, FMT_OPT = 2, qualfilt = NULL)
+
+R10_Base_files2proc = list.files("C:\Users\McMillanAn\OneDrive - MWLR\Projects\PRJ3820-DOC-GNSS\data\Field-Test-Ballance-20231108\R10-Base\Bens-Rinex-Files")
+
+
+
+
+
+
+
+```
 
 #FORMAL RUNS FOR REPORT
 
@@ -776,7 +794,7 @@ for (iMETHOD in METHODS){
 
 ```{r}
 CollateDF_ffn =  "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/data/Field-Test-Ballance-20231108/SOLUTIONS/GNSS_PERFORMANCE_STATS_COLLATED.csv"
- 
+
 D = read_csv(CollateDF_ffn)
 ```
 
@@ -846,7 +864,7 @@ D_SEL = D %>%
 g = ggplot(D_SEL) + geom_point(aes(RCVR, M_ACC, color = METHOD  ), size  =3)
 # g = g + geom_errorbar(aes(x = RCVR, ymin = M_ACC-M_PREC, ymax = M_ACC + M_PREC, color = METHOD), width = .2) + geom_jitter()
 g = g + labs(x = "Receiver", y = "Accuracy (m)")
-# g = g + lims(y = c(0,2))
+g = g + lims(y = c(0,2))
 g
 
 ggsave(filename = fig_ffn, plot = g, width = 28, height = 16, units = "cm", bg = "white")
@@ -896,6 +914,16 @@ COORDS_SMY = COORDS %>%
     Y_filt_3sd_mean = mean(Y_filt_3sd, na.rm = T),
     X_filt_6sd_mean = mean(X_filt_6sd, na.rm = T),
     Y_filt_6sd_mean = mean(Y_filt_6sd, na.rm = T),
+    Xmedian = median(X),
+    Ymedian = median(Y),
+    X_filt_1sd_median = median(X_filt_1sd, na.rm = T),
+    Y_filt_1sd_median = median(Y_filt_1sd, na.rm = T),
+    X_filt_2sd_median = median(X_filt_2sd, na.rm = T),
+    Y_filt_2sd_median = median(Y_filt_2sd, na.rm = T),
+    X_filt_3sd_median = median(X_filt_3sd, na.rm = T),
+    Y_filt_3sd_median = median(Y_filt_3sd, na.rm = T),
+    X_filt_6sd_median = median(X_filt_6sd, na.rm = T),
+    Y_filt_6sd_median = median(Y_filt_6sd, na.rm = T),
     
     
   ) %>% 
@@ -905,13 +933,18 @@ COORDS_SMY = COORDS %>%
     ACC_1sd_filt = sqrt( (known_coords[1] - X_filt_1sd_mean)^2 + (known_coords[2] - Y_filt_1sd_mean)^2),
     ACC_2sd_filt = sqrt( (known_coords[1] - X_filt_2sd_mean)^2 + (known_coords[2] - Y_filt_2sd_mean)^2),
     ACC_3sd_filt = sqrt( (known_coords[1] - X_filt_3sd_mean)^2 + (known_coords[2] - Y_filt_3sd_mean)^2),
-    ACC_6sd_filt = sqrt( (known_coords[1] - X_filt_6sd_mean)^2 + (known_coords[2] - Y_filt_6sd_mean)^2)
+    ACC_6sd_filt = sqrt( (known_coords[1] - X_filt_6sd_mean)^2 + (known_coords[2] - Y_filt_6sd_mean)^2),
+    ACC_MEDIAN_no_filt = sqrt( (known_coords[1] - Xmedian)^2 + (known_coords[2] - Ymedian)^2),
+    ACC_MEDIAN_1sd_filt = sqrt( (known_coords[1] - X_filt_1sd_median)^2 + (known_coords[2] - Y_filt_1sd_median)^2),
+    ACC_MEDIAN_2sd_filt = sqrt( (known_coords[1] - X_filt_2sd_median)^2 + (known_coords[2] - Y_filt_2sd_median)^2),
+    ACC_MEDIAN_3sd_filt = sqrt( (known_coords[1] - X_filt_3sd_median)^2 + (known_coords[2] - Y_filt_3sd_median)^2),
+    ACC_MEDIAN_6sd_filt = sqrt( (known_coords[1] - X_filt_6sd_median)^2 + (known_coords[2] - Y_filt_6sd_median)^2)
     
     
     
   )
-  
-  print(COORDS_SMY %>% select(contains("ACC")))
+
+print(COORDS_SMY %>% select(contains("ACC"))) %>% t
 
 D_smy = D %>% summarise(
   
@@ -919,11 +952,11 @@ D_smy = D %>% summarise(
   LON = mean(Lon_DD),
   LAT_sd = sd(Lat_DD),
   LON_sd = sd(Lon_DD),
-  )
+)
 
 D = 
-
-sf = D_smy 
+  
+  sf = D_smy 
 
 sf_2193 = sf %>% st_transform(crs = 2193)
 mapview(sf_2193)
@@ -937,6 +970,320 @@ del_Y = sf_2193_coords[2] - known_coords[2]
 ACC = sqrt(del_X^2 + del_X^2)
 
 
+
+```
+
+# RTKLIB on R10-Base
+
+```{r}
+
+R10_Base_Rinex_files = list.files("C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/data/Field-Test-Ballance-20231108/R10-Base/Bens-Rinex-Files/", full.names = T)
+
+
+InputFile_01393111_ffn = "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/data/proc_rtk_generic_filelists/RTKLIB-inputfilelist-R10-Base-01393111.txt"
+
+
+
+InputFile_01393120_ffn = "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/data/proc_rtk_generic_filelists/RTKLIB-inputfilelist-R10-Base-01393120.txt"
+
+
+InputFile_01393180_ffn = "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/data/proc_rtk_generic_filelists/RTKLIB-inputfilelist-R10-Base-01393180.txt"
+
+
+SOLN_01393111 = SOLN_ANL_generic(InputFile_01393111_ffn)
+SOLN_01393120 = SOLN_ANL_generic(InputFile_01393120_ffn)
+SOLN_01393180 = SOLN_ANL_generic(InputFile_01393180_ffn)
+
+
+SOLN_ANL_generic = function(InputFile_ffn){
+  
+  # InputFile_ffn = InputFile_01393111_ffn
+  # POS_SOLN_3111 = proc_rtk_generic(InputFile_ffn = InputFile_01393111_ffn)
+  # POS_SOLN_3120 = proc_rtk_generic(InputFile_ffn = InputFile_01393120_ffn)
+  # 
+  # POS_SOLN_ANL = NA
+  # POS_SOLN_ANL_3111 = anal_POS_generic(POS_SOLN_3111$POS_ffn, known_coords = c(1839374.859,	5531494.916))
+  # POS_SOLN_ANL_3120 = anal_POS_generic(POS_SOLN_3120$POS_ffn, known_coords = c(1839374.859,	5531494.916))
+  POS_SOLN = proc_rtk_generic(InputFile_ffn = InputFile_ffn)
+  
+  SOLUTION_ffn = POS_SOLN$POS_ffn
+  POS_SOLN_ANL = anal_POS_generic(SOLUTION_ffn, known_coords = c(1839374.859,	5531494.916))
+  
+  
+  
+  # now collate all the files
+  
+  SOLUTION_fn = tools::file_path_sans_ext(SOLUTION_ffn)
+  SOLUTION_SMY_dn = paste0(dirname(dirname(SOLUTION_fn)),"/SOLUTION_SMY/")
+  SOLUTION_SMY_ffn = paste0(SOLUTION_SMY_dn,basename(SOLUTION_fn),"_SMY.txt") 
+  
+  write_csv(as.data.frame(t(POS_SOLN_ANL)),file=SOLUTION_SMY_ffn )
+  
+  print(paste("Writing summary of results to",SOLUTION_SMY_ffn ))
+  
+  SMY_fls = list.files(SOLUTION_SMY_dn,pattern = "\\.txt$", full.names = T)
+  for (i in SMY_fls){
+    D = read_csv(i) %>% 
+        mutate(filename = basename(i)) %>% 
+    select(filename, everything())
+    if (i == SMY_fls[1]){
+      DD = D
+    }else{
+      DD = DD %>% 
+        bind_rows(D) 
+    }
+  }
+  SOLUTION_SMY_COLLATED = DD 
+  
+  
+  SOLUTION_SMY_COLLATED_ffn = paste0(SOLUTION_SMY_dn, "SOLUTION_SMY_COLLATED.csv")
+  write_csv(SOLUTION_SMY_COLLATED,SOLUTION_SMY_COLLATED_ffn)
+  
+  
+  
+  
+  return(POS_SOLN_ANL)
+  
+  
+  
+  
+  
+}
+
+
+```
+
+
+```{r}
+
+POS_ffn = "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/data/Field-Test-Ballance-20231108/R10-Base/SOLUTIONS/01393111.pos"
+
+POS_ffn = "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/data/Field-Test-Ballance-20231108/R10-Base/SOLUTIONS/Rinex_304_Occ1.pos"
+
+POS_ffn = "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/data/Field-Test-Ballance-20231108/TestDir/Solution.pos"
+
+POS_ffn = "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/data/Field-Test-Ballance-20231108/R10-Base/InputFiles_01393111/Solution.pos"
+
+# Using the CLI (rns2rtkp.exe)
+POS_ffn = "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/data/Field-Test-Ballance-20231108/R10-Base/InputFiles_01393120/Solution-01.pos"
+
+
+X = anal_POS_generic(POS_ffn = POS_ffn)
+
+# Using the GUI (RTKPOST.exe)
+POS_ffn = "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/data/Field-Test-Ballance-20231108/R10-Base/InputFiles_01393120/solution-GUI-01.pos"
+
+X = anal_POS_generic(POS_ffn = POS_ffn)
+
+# Using the GUI (RTKPOST.exe)
+# fix and hold on GPS
+POS_ffn = "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/data/Field-Test-Ballance-20231108/R10-Base/InputFiles_01393120/solution-GUI-02.pos"
+
+X = anal_POS_generic(POS_ffn = POS_ffn)
+
+#=======================================================
+#  Test 03 - Change Threshold for Integer Ambiguity to 1.5 (from 3)
+#======================================================
+
+# Using the GUI (RTKPOST.exe)
+# fix and hold on GPS
+POS_ffn = "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/data/Field-Test-Ballance-20231108/R10-Base/InputFiles_01393120/solution-GUI-03.pos"
+
+X = anal_POS_generic(POS_ffn = POS_ffn)
+
+#=======================================================
+#  Test 04 - Do not inlcude precise ephem and clock (use broadcast isntead)
+#======================================================
+
+# Using the GUI (RTKPOST.exe)
+# 
+POS_ffn = "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/data/Field-Test-Ballance-20231108/R10-Base/InputFiles_01393120/solution-GUI-04.pos"
+
+X = anal_POS_generic(POS_ffn = POS_ffn)
+
+# --> this only made a tiny difference
+
+#=======================================================
+#  Test 05 - Forward (not combined)
+#======================================================
+
+# Using the GUI (RTKPOST.exe)
+# Use forward solution only
+
+POS_ffn = "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/data/Field-Test-Ballance-20231108/R10-Base/InputFiles_01393120/solution-GUI-05.pos"
+
+X = anal_POS_generic(POS_ffn = POS_ffn)
+
+# --> Significant improvement in accuracy, precision not as good. But shorter processing
+
+#=======================================================
+#  Test 06 - Use interpolated Base Station data
+#======================================================
+
+# Using the GUI (RTKPOST.exe)
+# Use forward solution only
+
+POS_ffn = "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/data/Field-Test-Ballance-20231108/R10-Base/InputFiles_01393120/solution-GUI-06.pos"
+
+X = anal_POS_generic(POS_ffn = POS_ffn)
+
+# --> Makes big difference. Still no fixed!
+
+
+#=======================================================
+#  Swith to day 319
+#======================================================
+
+# Using the GUI (RTKPOST.exe)
+# Use forward solution only
+
+POS_ffn = "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/data/Field-Test-Ballance-20231108/R10-Base/InputFiles_01393190/01393192.pos"
+
+X = anal_POS_generic(POS_ffn = POS_ffn)
+
+# --> Makes big difference. Still no fixed!
+
+
+
+#=======================================================
+#  Swith to day 298
+#======================================================
+
+# Using the GUI (RTKPOST.exe)
+# Use forward solution only
+
+POS_ffn = "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/data/Field-Test-Ballance-20231108/R10-Base/InputFiles_01392982/01392982_v2.pos"
+
+X = anal_POS_generic(POS_ffn = POS_ffn)
+
+# --> Makes big difference. Still no fixed!
+
+
+
+#=======================================================
+#  Swith to day 298 Change AR ratio th/h to 1
+#======================================================
+
+# Using the GUI (RTKPOST.exe)
+# Use forward solution only
+
+POS_ffn = "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/data/Field-Test-Ballance-20231108/R10-Base/InputFiles_01392982/01392982_v3.pos"
+
+X = anal_POS_generic(POS_ffn = POS_ffn)
+
+# --> Makes big difference. Still no fixed!
+
+
+#=======================================================
+#  Swith to day 298 Change AR ratio th/h to 2
+#======================================================
+
+# Using the GUI (RTKPOST.exe)
+# Use forward solution only
+
+POS_ffn = "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/data/Field-Test-Ballance-20231108/R10-Base/InputFiles_01392982/01392982_v4.pos"
+
+X = anal_POS_generic(POS_ffn = POS_ffn)
+
+# --> M
+
+#=======================================================
+#  Swith to day 298 Change AR ratio th/h to 1.5
+#======================================================
+
+# Using the GUI (RTKPOST.exe)
+# Use forward solution only
+
+POS_ffn = "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/data/Field-Test-Ballance-20231108/R10-Base/InputFiles_01392982/01392982_v5.pos"
+
+X = anal_POS_generic(POS_ffn = POS_ffn)
+
+# --> ...
+
+#=======================================================
+#  Swith to day 298 Change AR ratio th/h to 1.5 / no precise eph/clk
+#======================================================
+
+# Using the GUI (RTKPOST.exe)
+# Use forward solution only
+
+POS_ffn = "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/data/Field-Test-Ballance-20231108/R10-Base/InputFiles_01392982/01392982.pos"
+
+X = anal_POS_generic(POS_ffn = POS_ffn)
+
+#=======================================================
+# v9 Day 298 Change AR ratio th/h to 1.5 / no precise eph/clk / wrpa as base
+#======================================================
+
+# Using the GUI (RTKPOST.exe)
+# Use forward solution only
+
+POS_ffn = "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/data/Field-Test-Ballance-20231108/R10-Base/InputFiles_01392982/01392982_v9.pos"
+
+X = anal_POS_generic(POS_ffn = POS_ffn)
+
+#=======================================================
+# v10 Day 298 Change AR ratio th/h to 1.5 / WITH precise eph/clk / wrpa as base
+#======================================================
+
+# Using the GUI (RTKPOST.exe)
+# Use forward solution only
+
+POS_ffn = "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/data/Field-Test-Ballance-20231108/R10-Base/InputFiles_01392982/01392982_v10.pos"
+
+X = anal_POS_generic(POS_ffn = POS_ffn)
+
+#=======================================================
+# v11 Day 298 Change Base back to DNVK, AR ratio th/h to 1.5 / WITH precise eph/clk / dnvk as base
+#======================================================
+
+# Using the GUI (RTKPOST.exe)
+
+
+POS_ffn = "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/data/Field-Test-Ballance-20231108/R10-Base/InputFiles_01392982/01392982_v11.pos"
+
+X = anal_POS_generic(POS_ffn = POS_ffn)
+
+
+#=======================================================
+# v12 Day 298 Change the Ionospheric correction from "IONEX TEC" to "ESTIMATE TEC", AR ratio th/h to 1.5 / WITH precise eph/clk / dnvk as base
+#======================================================
+
+# Using the GUI (RTKPOST.exe)
+
+
+POS_ffn = "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/data/Field-Test-Ballance-20231108/R10-Base/InputFiles_01392982/01392982_v12.pos"
+
+X = anal_POS_generic(POS_ffn = POS_ffn)
+
+
+# --> ...
+
+#=======================================================
+# v13 Day 298 Change the Ionospheric correction from "IONEX TEC" to "IONO-FREE LC", AR ratio th/h to 1.5 / WITH precise eph/clk / dnvk as base
+#======================================================
+
+# Using the GUI (RTKPOST.exe)
+
+
+POS_ffn = "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/data/Field-Test-Ballance-20231108/R10-Base/InputFiles_01392982/01392982_v13.pos"
+
+X = anal_POS_generic(POS_ffn = POS_ffn)
+
+
+#=======================================================
+# v14 Day 298 Increate the AR from 1.5 to 3.0 Change the Ionospheric correction from "IONEX TEC" to "IONO-FREE LC", AR ratio th/h to 1.5 / WITH precise eph/clk / dnvk as base
+#======================================================
+
+# Using the GUI (RTKPOST.exe)
+
+
+POS_ffn = "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/data/Field-Test-Ballance-20231108/R10-Base/InputFiles_01392982/01392982_v14.pos"
+
+X = anal_POS_generic(POS_ffn = POS_ffn)
+
+
+# --> ...
 
 ```
 

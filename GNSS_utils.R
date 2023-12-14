@@ -353,6 +353,9 @@ read_POS = function(POS_ffn,FMT_OPT=NULL){
   if (is.null(FMT_OPT)){
     
     D = read_csv(POS_ffn, skip = NSKIP, col_names =F, show_col_types = FALSE)
+    
+    
+    
     HDRS = c("GPS_Week", "GPS_Time",  "Lat_DD",  "Lon_DD",  "Ht_ell", "Q",
              "nvsv","sdn", "sde", "sdu", "sdne" , "sdeu","sdun", "age" ,"ratio")
     names(D) <- HDRS
@@ -1144,17 +1147,12 @@ rtk_proc_anal = function(Rover, Occ, Method, Period, plotdim = 3, replot_only = 
 
 get_qual_stats = function(POS_data_input = NULL, POS_ffn = NULL){
   
-  POS_ffn = "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/data/Field-Test-Ballance-20231108/SOLUTIONS/BAL_OCC1_R10-Rover_RTK-CORS-WRPA_180MIN.pos"
-  POS_data_input = NULL
+  # POS_ffn = "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/data/Field-Test-Ballance-20231108/SOLUTIONS/BAL_OCC1_R10-Rover_RTK-CORS-WRPA_180MIN.pos"
+  # POS_data_input = NULL
   
   if (is.null(POS_data_input) & !is.null(POS_ffn)){
     
     POS_data = read_POS(POS_ffn)
-    
-    
-  } else if (!is.null(POS_data) & is.null(POS_ffn)){
-    
-    POS_data = read_POS(POS_data_input)
     
   }
   
@@ -1175,7 +1173,7 @@ get_qual_stats = function(POS_data_input = NULL, POS_ffn = NULL){
 
 qual_based_soln = function(POS_data_input = NULL, POS_ffn = NULL, known_coords = NULL){
   
-  testmode = T
+  testmode = F
   
   if (testmode){
     POS_ffn = "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/data/Field-Test-Ballance-20231108/SOLUTIONS/BAL_OCC1_R10-Rover_RTK-CORS-WRPA_180MIN.pos"
@@ -1184,86 +1182,18 @@ qual_based_soln = function(POS_data_input = NULL, POS_ffn = NULL, known_coords =
     known_coords = c(1839374.859,	5531494.916,	79.451)
   }
   
-  # a funtion to add columns based on known coordinates
-  add_diff_from_known = function(POS_DF, known_coords){
-    
-    elev_known = length(known_coords)==3
-    
-    POS_DF = POS_DF %>% 
-      mutate(
-        KNOWN_POS_X = known_coords[1],
-        KNOWN_POS_Y = known_coords[2],
-        KNOWN_POS_Z = ifelse(elev_known, known_coords[3], NA),
-        DEL_LON = LON - KNOWN_POS_X,
-        DEL_LAT = LAT - KNOWN_POS_Y,
-        DEL_ELE = ifelse(elev_known,Ht_ell - KNOWN_POS_Z,NA),
-        DEL_LON_SQ =  DEL_LON^2,
-        DEL_LAT_SQ =  DEL_LAT^2,
-        DEL_LATLON = sqrt(DEL_LON_SQ + DEL_LAT_SQ)
-      )
-  }
-  
-  calc_POS_data_stats = function(POS_data, known_coords=NULL){
-    
-    if (!is.null(known_coords)){
-      POS_data_all_stats = POS_data %>% 
-        summarise(
-          LAT_avg = mean(LAT),
-          LON_avg = mean(LON),
-          ELE_avg = mean(Ht_ell),
-          LAT_sd = sd(LAT),
-          LON_sd = sd(LON),
-          ELE_sd = sd(Ht_ell),
-          DEL_LON_avg = mean(DEL_LON),
-          DEL_LAT_avg = mean(DEL_LAT),
-          DEL_LON_sd = sd(DEL_LON),
-          DEL_LAT_sd = sd(DEL_LAT),
-          KNOWN_POS_X = known_coords[1],
-          KNOWN_POS_Y = known_coords[2],
-          M_ACC = sqrt( (LON_avg-KNOWN_POS_X)^2 + (LAT_avg-KNOWN_POS_Y)^2  ),
-          M_PREC = sqrt(DEL_LON_sd^2 + DEL_LAT_sd^2),
-          
-          LON_avg_fixed = mean(LON[Q==1]),
-          LAT_avg_fixed = mean(LAT[Q==1]),
-          
-          LON_avg_float = mean(LON[Q==2]),
-          LAT_avg_float = mean(LAT[Q==2]),
-          
-          LON_avg_fixed_or_float = mean(LON[Q==1|Q==2]),
-          LAT_avg_fixed_or_float = mean(LAT[Q==1|Q==2]),
-          
-          M_ACC_all = sqrt( (LON_avg-KNOWN_POS_X)^2 + (LAT_avg-KNOWN_POS_Y)^2  ),
-          M_ACC_fixed = sqrt( (LON_avg_fixed - KNOWN_POS_X)^2 + (LAT_avg_fixed - KNOWN_POS_Y)^2),
-          M_ACC_float = sqrt( (LON_avg_float - KNOWN_POS_X)^2 + (LAT_avg_float - KNOWN_POS_Y)^2),
-          M_ACC_fixed_or_float = sqrt( (LON_avg_fixed_or_float - KNOWN_POS_X)^2 + (LAT_avg_fixed_or_float - KNOWN_POS_Y)^2),
-          
-        )
-      
-    }else{
-      POS_data_all_stats = POS_data %>% 
-        summarise(
-          LAT_avg = mean(LAT),
-          LON_avg = mean(LON),
-          ELE_avg = mean(Ht_ell),
-          LAT_sd = sd(LAT),
-          LON_sd = sd(LON),
-          ELE_sd = sd(Ht_ell),
-          M_PREC = sqrt(LON_sd^2 + LAT_sd^2)
-        )
-    }
-    return(POS_data_all_stats)
-  }
+ 
   
   
   #work out if the input is a file name or a data framne
   if (is.null(POS_data_input) & !is.null(POS_ffn)){
-    POS_data = read_POS(POS_ffn)
-  } else if (!is.null(POS_data) & is.null(POS_ffn)){
-    POS_data = read_POS(POS_data_input)
+    POS_data_mdf = read_POS(POS_ffn)
+  } else if (!is.null(POS_data_input) & is.null(POS_ffn)){
+    POS_data_mdf = POS_data_input
   }
   
   #convert coordinates
-  POS_data = convert_crs_df(POS_data, src_crs = 4326, dst_crs = 2193, 
+  POS_data_with_COORDS = convert_crs_df(POS_data_mdf, src_crs = 4326, dst_crs = 2193, 
                             input_coord_labs = c("Lon_DD", "Lat_DD"),
                             output_coord_labs = c("LON", "LAT"))
   
@@ -1272,21 +1202,107 @@ qual_based_soln = function(POS_data_input = NULL, POS_ffn = NULL, known_coords =
   if (!is.null(known_coords)){pos_known = T}else{pos_known = T}
   
   # if known coordinates are supplied then add difference columns
-  if (pos_known){POS_data = add_diff_from_known(POS_data, known_coords) }
+  if (pos_known){POS_data_with_COORDS = add_diff_from_known(POS_data_with_COORDS, known_coords =   known_coords) }
   
   
   
  
-  POS_data_stats = calc_POS_data_stats(POS_data, known_coords = known_coords) 
+  POS_data_stats = calc_POS_data_stats(POS_data_with_COORDS, known_coords = known_coords) 
   
   print(t(POS_data_stats))
   
   POS_data_fixed = POS_data_all %>% filter(Q==1)
   
   
-  return(qual_stats)
+  return(t(POS_data_stats))
   
   
+}
+
+
+#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+### calc_POS_data_stats
+#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+
+calc_POS_data_stats = function(POS_data, known_coords=NULL){
+  
+  if (!is.null(known_coords)){
+    POS_data_all_stats = POS_data %>% 
+      summarise(
+        LAT_avg = mean(LAT),
+        LON_avg = mean(LON),
+        ELE_avg = mean(Ht_ell),
+        LAT_sd = sd(LAT),
+        LON_sd = sd(LON),
+        ELE_sd = sd(Ht_ell),
+        DEL_LON_avg = mean(DEL_LON),
+        DEL_LAT_avg = mean(DEL_LAT),
+        DEL_LON_sd = sd(DEL_LON),
+        DEL_LAT_sd = sd(DEL_LAT),
+        KNOWN_POS_X = known_coords[1],
+        KNOWN_POS_Y = known_coords[2],
+        M_ACC = sqrt( (LON_avg-KNOWN_POS_X)^2 + (LAT_avg-KNOWN_POS_Y)^2  ),
+        M_PREC = sqrt(DEL_LON_sd^2 + DEL_LAT_sd^2),
+        
+        LON_avg_fixed = mean(LON[Q==1]),
+        LAT_avg_fixed = mean(LAT[Q==1]),
+        
+        LON_avg_float = mean(LON[Q==2]),
+        LAT_avg_float = mean(LAT[Q==2]),
+        
+        LON_avg_fixed_or_float = mean(LON[Q==1|Q==2]),
+        LAT_avg_fixed_or_float = mean(LAT[Q==1|Q==2]),
+        
+        M_ACC_all = sqrt( (LON_avg-KNOWN_POS_X)^2 + (LAT_avg-KNOWN_POS_Y)^2  ),
+        M_ACC_fixed = sqrt( (LON_avg_fixed - KNOWN_POS_X)^2 + (LAT_avg_fixed - KNOWN_POS_Y)^2),
+        M_ACC_float = sqrt( (LON_avg_float - KNOWN_POS_X)^2 + (LAT_avg_float - KNOWN_POS_Y)^2),
+        M_ACC_fixed_or_float = sqrt( (LON_avg_fixed_or_float - KNOWN_POS_X)^2 + (LAT_avg_fixed_or_float - KNOWN_POS_Y)^2),
+        PERCENT_FIXED = 100 * length(which(Q==1))/length(Q),
+        PERCENT_FLOAT = 100 * length(which(Q==2))/length(Q)
+        
+      )
+    
+  }else{
+    POS_data_all_stats = POS_data %>% 
+      summarise(
+        LAT_avg = mean(LAT),
+        LON_avg = mean(LON),
+        ELE_avg = mean(Ht_ell),
+        LAT_sd = sd(LAT),
+        LON_sd = sd(LON),
+        ELE_sd = sd(Ht_ell),
+        M_PREC = sqrt(LON_sd^2 + LAT_sd^2)
+      )
+  }
+  return(POS_data_all_stats)
+}
+
+
+#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+### add_diff_from_known
+#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+
+# a funtion to add columns based on known coordinates
+add_diff_from_known = function(POS_DF, known_coords){
+  
+  elev_known = length(known_coords)==3
+  
+  POS_DF_mdf01 = POS_DF %>% 
+    mutate(
+      KNOWN_POS_X = known_coords[1],
+      KNOWN_POS_Y = known_coords[2],
+      KNOWN_POS_Z = ifelse(elev_known, known_coords[3], NA),
+      DEL_LON = LON - KNOWN_POS_X,
+      DEL_LAT = LAT - KNOWN_POS_Y,
+      DEL_ELE = ifelse(elev_known,Ht_ell - KNOWN_POS_Z,NA),
+      DEL_LON_SQ =  DEL_LON^2,
+      DEL_LAT_SQ =  DEL_LAT^2,
+      DEL_LATLON = sqrt(DEL_LON_SQ + DEL_LAT_SQ)
+    )
+  
+  return(POS_DF_mdf01)
 }
 
 
@@ -1300,7 +1316,7 @@ convert_crs_df = function(df, src_crs = 4326, dst_crs = 2193,
                           input_coord_labs = c("Lon_DD", "Lat_DD"),
                           output_coord_labs = c("LON", "LAT")){
   
-  df = SOLN_DATA
+  # df = SOLN_DATA
   
   transformed_coords = df %>% 
     st_as_sf(coords = coord_labs, crs = src_crs) %>% 
@@ -1321,12 +1337,14 @@ convert_crs_df = function(df, src_crs = 4326, dst_crs = 2193,
 
 proc_rtk_generic = function(InputFile_ffn = NULL, Output_ffn,Rover_obs_ffn, Base_obs_ffn, Base_nav_ffn, Precise_eph, Precise_clk){
   
-  testmode = T
+  testmode = F
   if (testmode){
     
     
     wsl_rootDrive = "/mnt/c/"
     w10_rootDrive = "C:/"
+    
+    
     
     root_wsl = paste0(wsl_rootDrive, "Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/data/Field-Test-Ballance-20231108/")
     root_w10 = paste0(w10_rootDrive, "Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/data/Field-Test-Ballance-20231108/")
@@ -1341,7 +1359,7 @@ proc_rtk_generic = function(InputFile_ffn = NULL, Output_ffn,Rover_obs_ffn, Base
     
     w10_Solution_ffn = paste0(root_w10,"SOLUTIONS/R10-BASE-RTKLIB_SOLUTION.pos")
     
-    InputFile_ffn = "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/data/proc_rtk_generic_filelists/RTKLIB-inputfilelist-R10-Base-01393120.txt"
+    InputFile_ffn = "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/data/proc_rtk_generic_filelists/RTKLIB-inputfilelist-R10-Base-01393111.txt"
     
     
   }
@@ -1349,7 +1367,7 @@ proc_rtk_generic = function(InputFile_ffn = NULL, Output_ffn,Rover_obs_ffn, Base
   if(!is.null(InputFile_ffn)){
     
     lines = readLines(InputFile_ffn)
-    
+    remove("config_ffn")
     for (iline in lines){
       
       
@@ -1362,10 +1380,30 @@ proc_rtk_generic = function(InputFile_ffn = NULL, Output_ffn,Rover_obs_ffn, Base
     }
   }
   
+  if (exists("config_ffn")){config=T}else(config=F)
+  
+  files2find = c(rover_obs_ffn, base_obs_ffn, precise_eph_ffn, precise_clk_ffn)
+  for (ifile in files2find){
+    
+    ifile_w10 = wineq_path(ifile)
+    if (!file.exists(ifile_w10)){
+      print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+      print(paste("Could not find ", wineq_path(ifile_w10)))
+      stop()
+    }
+    
+  }
+  
+  
   
   qm = "\""
-  cmd_stub = paste0("wsl rnx2rtkp -o ", qm, Solution_ffn, qm," -p 3 -f 3 -s \",\" -c")
   
+  if (config){
+    
+    cmd_stub = paste0("wsl rnx2rtkp -k ", qm, config_ffn, qm, " -o ", qm,Solution_ffn,qm)
+  } else {
+     cmd_stub = paste0("wsl rnx2rtkp -o ", qm, Solution_ffn, qm," -p 3 -f 1 -s \",\" -c")
+  }
   # 
   # 
   # start_AND_stop = str_detect(Period, "_TO_")|str_detect(Period, "_to_")
@@ -1404,6 +1442,10 @@ proc_rtk_generic = function(InputFile_ffn = NULL, Output_ffn,Rover_obs_ffn, Base
   # 
   #now create full CMD string
   
+  #delete the old solution file so that there is no confusion
+  if (file.exists(wineq_path(Solution_ffn))){
+    file.rename(wineq_path(Solution_ffn), paste0(tools::file_path_sans_ext(wineq_path(Solution_ffn)), "_old_", strftime(Sys.time(), format = "%Y-%m-%d_%H%M%S"), ".txt"))
+}
   
   cmd_stub_mdf = cmd_stub 
   
@@ -1437,5 +1479,48 @@ proc_rtk_generic = function(InputFile_ffn = NULL, Output_ffn,Rover_obs_ffn, Base
   # print(paste("Done"))
   # print(paste("+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"))
   
+  
+  w10_Solution_ffn = wineq_path(Solution_ffn)
+  
+  return(list(POS_ffn = w10_Solution_ffn, SOLN_DATA = SOLN_DATA,QUAL_STATS=QUAL_STATS))
+  
 } 
+
+
+
+anal_POS_generic = function(POS_ffn, known_coords = NULL){
+  
+  # POS_ffn = "c:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/data/Field-Test-Ballance-20231108/SOLUTIONS/R10-BASE-RTKLIB_SOLUTION-01393120.pos"
+  
+  known_coords = c(1839374.859,	5531494.916)
+
+  # SOLN_DATA = read_POS(POS_ffn,FMT_OPT=NULL) 
+  # 
+  
+  # SOLN_DATA_mdf = convert_crs_df(SOLN_DATA, src_crs = 4326, dst_crs = 2193, 
+  #                             input_coord_labs = c("Lon_DD", "Lat_DD"),
+  #                             output_coord_labs = c("LON", "LAT"))
+  # 
+  
+  
+  SOLN_QBASED = qual_based_soln(POS_data_input = NULL, POS_ffn = POS_ffn, known_coords = known_coords)
+  
+  SOLN_QBASED_df = as.data.frame(t(SOLN_QBASED))
+  print(paste("LAT = ",formatC(SOLN_QBASED_df$LAT_avg,digits = 11)))
+  print(paste("LON = ",formatC(SOLN_QBASED_df$LON_avg,digits = 11)))
+  print(paste("ELEV = ",formatC(SOLN_QBASED_df$ELE_avg,digits = 6)))
+  
+  print(paste("ACCURACY = ",formatC(SOLN_QBASED_df$M_ACC,digits = 4)))
+  print(paste("PREC = ",formatC(SOLN_QBASED_df$M_PREC,digits = 4)))
+  print(paste("PERCENT FIXED = ",formatC(SOLN_QBASED_df$PERCENT_FIXED,digits = 6)))
+  
+  return(SOLN_QBASED)
+  
+}
+
+
+
+
+
+
 
