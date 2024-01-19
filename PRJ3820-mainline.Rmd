@@ -6,6 +6,8 @@ editor_options:
   chunk_output_type: console
 chunk_output_type: console
 chunk_output_type: console
+chunk_output_type: console
+chunk_output_type: console
 ---
 
 
@@ -1024,8 +1026,8 @@ SOLN_ANL_generic = function(InputFile_ffn){
   SMY_fls = list.files(SOLUTION_SMY_dn,pattern = "\\.txt$", full.names = T)
   for (i in SMY_fls){
     D = read_csv(i) %>% 
-        mutate(filename = basename(i)) %>% 
-    select(filename, everything())
+      mutate(filename = basename(i)) %>% 
+      select(filename, everything())
     if (i == SMY_fls[1]){
       DD = D
     }else{
@@ -1097,9 +1099,9 @@ X = anal_POS_generic(POS_ffn = POS_ffn)
 
 # Using the GUI (RTKPOST.exe)
 # 
-POS_ffn = "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/data/Field-Test-Ballance-20231108/R10-Base/InputFiles_01393120/solution-GUI-04.pos"
+POS_ffn_curr = "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/data/Field-Test-Ballance-20231108/R10-Base/InputFiles_01393120/solution-GUI-04.pos"
 
-X = anal_POS_generic(POS_ffn = POS_ffn)
+X = anal_POS_generic(POS_ffn = POS_ffn_curr)
 
 # --> this only made a tiny difference
 
@@ -1285,5 +1287,1803 @@ X = anal_POS_generic(POS_ffn = POS_ffn)
 
 # --> ...
 
+#=======================================================
+# v15 Day 298 Ionospheric Correction OFF Increate the AR from 1.5 to 3.0 AR ratio th/h to 1.5 / WITH precise eph/clk / dnvk as base
+#======================================================
+
+# Using the GUI (RTKPOST.exe)
+
+
+POS_ffn = "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/data/Field-Test-Ballance-20231108/R10-Base/InputFiles_01392982/01392982_v15.pos"
+
+X = anal_POS_generic(POS_ffn = POS_ffn)
+
+
+# --> ...
+
+#=======================================================
+# v16 Day 298 Enable RAIM FDE Option, Ionospheric Correction OFF Increate the AR from 1.5 to 3.0 AR ratio th/h to 1.5 / WITH precise eph/clk / dnvk as base
+#======================================================
+
+# Using the GUI (RTKPOST.exe)
+
+
+POS_ffn = "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/data/Field-Test-Ballance-20231108/R10-Base/InputFiles_01392982/01392982_v16.pos"
+
+X = anal_POS_generic(POS_ffn = POS_ffn, known_coords = c(1838917.665,	5531119.762))
+
+
+# --> ...makes no difference
+
+#=======================================================
+# v16 Day 311 Ionospheric Correction OFF Increate the AR from 1.5 to 3.0 AR ratio th/h to 1.5 / WITH precise eph/clk / dnvk as base
+#======================================================
+
+# Using the GUI (RTKPOST.exe)
+
+
+POS_ffn = "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/data/Field-Test-Ballance-20231108/R10-Base/InputFiles_01393111/01393111_v16.pos"
+
+
+
+POS_ffn = "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/data/Field-Test-Ballance-20231108/R10-Rover/SOLUTIONS/RTK-LIB/R10-Rover-PPK-R10-Base_v04.pos"
+
+X = anal_POS_generic(POS_ffn = POS_ffn, known_coords = c(1838917.665,	5531119.762))
+
+
+POS_ffn = "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/data/Field-Test-Ballance-20231108/JVD/SOLUTIONS/OCC1-PPK-R10BASE/SOL_105.pos"
+
+X = anal_POS_generic(POS_ffn = POS_ffn, known_coords = c(1838912.997,	5531118.343))
+
+
+
+POS_ffn = "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/data/Field-Test-Ballance-20231108/JVD/SOLUTIONS/Demo5-RTKLIB/SOLN-JVD-OCC1-v01"
+
+X = anal_POS_generic(POS_ffn = POS_ffn, known_coords = c(1838912.997,	5531118.343))
+
+
+
+
+
+# --> ...makes no difference
 ```
+
+
+
+#Systematic Tests with JVD OCC1 19/12/23
+```{r}
+
+#=======================================================
+# Run 1 - JVD-OCC1-Config-v01.conf
+#======================================================
+
+
+POS_ffn = "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/data/Field-Test-Ballance-20231108/JVD/SOLUTIONS/JVD-OCC1-SOLN-v01.POS"
+
+X = anal_POS_generic(POS_ffn = POS_ffn, known_coords = c(1838912.997,	5531118.343))
+
+
+#=======================================================
+# Run 1 - JVD-OCC1-Config-v02.conf - no base interp
+#======================================================
+
+
+POS_ffn = "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/data/Field-Test-Ballance-20231108/JVD/SOLUTIONS/JVD-OCC1-SOLN-v08.POS"
+
+X = anal_POS_generic(POS_ffn = POS_ffn, known_coords = c(1838912.997,	5531118.343))
+
+
+# =======================================================
+# Run 1 - JVD-OCC1-Config-v02.conf - no base interp
+#======================================================
+
+
+POS_ffn = "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/data/Field-Test-Ballance-20231108/JVD/SOLUTIONS/JVD-OCC2-SOLN-v07.POS"
+
+X = anal_POS_generic(POS_ffn = POS_ffn, known_coords = c(1838906.513,	5531123.153))
+
+
+# =======================================================
+# Run 1 - JVD-OCC1-Config-v02.conf - no base interp
+#======================================================
+
+POS_ffn = "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/data/Field-Test-Ballance-20231108/CAR/SOLUTIONS/CAR-OCC1-SOLN-v01.POS"
+
+
+X = anal_POS_generic(POS_ffn = POS_ffn, known_coords = c(1838906.513,	5531123.153))
+
+# X = anal_POS_generic(POS_ffn = POS_ffn, known_coords = c(1838921.146,	5531125.433))
+
+
+POS_ffn = "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/data/Field-Test-Ballance-20231108/JVD/RTKCONV/BALOCC1P6_v2.pos"
+
+
+X = anal_POS_generic(POS_ffn = POS_ffn, known_coords = c(1838912.997,	5531118.343))
+
+# X = anal_POS_generic(POS_ffn = POS_ffn, known_coords = c(1838921.146,	5531125.433))
+
+
+
+```
+
+
+
+
+PPP conversions
+
+```{r}
+
+PPP_Coords_R10_Base_01392982 = data.frame(X = 399581.897, Y = 5534636.524) %>% 
+  st_as_sf(coords = c("X","Y"), crs = 32760) %>% 
+  st_transform(crs = 2193) %>% 
+  st_coordinates() 
+
+
+
+
+print(formatC(PPP_Coords_R10_Base_01392982, digits = 12))
+
+
+
+
+
+
+```
+
+# Mess around with three D coordinate transformations
+
+
+```{r}
+
+
+
+
+R10BASE_9528 = st_as_sf(data.frame(X = 1839374.859	, Y = 5531494.916, Z = 	79.451), coords = c("X","Y", "Z"), crs = 9528)
+R10BASE_2193 = st_transform(R10BASE_9528, crs = 2193)
+
+
+X_DMS = c(175, 48, 45.27946)
+Y_DMS = c(-40, 20, 10.51917)
+
+Z = 25.111
+
+X_DD = sign(X_DMS[1])*(abs(X_DMS[1]) + X_DMS[2]/60 + X_DMS[3]/3600)
+Y_DD = sign(Y_DMS[1])*(abs(Y_DMS[1]) + Y_DMS[2]/60 + Y_DMS[3]/3600)
+
+remove(POSN_DF)
+
+POSN_DF = data.frame(X = X_DD, Y = Y_DD, Z = Z)
+
+POSN_SF = st_as_sf(POSN_DF, coords = c("X","Y", "Z"), crs = 4326)
+
+mapview(POSN_SF)
+
+POSN_SF_2193 = POSN_SF %>% st_transform(crs = 2193)
+
+
+NZQG_ffn= "C:/Users/McMillanAn/OneDrive - MWLR/NZ-Geospatial-Data/lds-nz-quasigeoid-2016-raster-GTiff/new_zealand_quasigeoid_2016_raster.tif"
+NZQG = rast(NZQG_ffn)
+
+QG_pts = terra::extract(NZQG, POSN_SF) %>% as.numeric() %>% nth(2)
+
+Adjusted_ELEV = POSN_SF_2193 %>% st_coordinates() %>% as_tibble() %>% select("Z") - QG_pts
+
+POSN_SF_2193_XY = POSN_SF_2193 %>% st_coordinates()%>% as_tibble() %>% select(X,Y)
+
+POSN_DF_2193_NZVD16 = POSN_SF_2193_XY %>% mutate(Adjusted_ELEV)
+POSN_SF_2193_NZVD16 = st_as_sf(POSN_DF_2193_NZVD16, coords = c("X","Y", "Z"), crs = 9528)
+
+
+
+```
+
+
+
+# Mess around with epochs and realisaztions
+
+# EPSG:9988     ITRF2020      Cartesian/Geocentric     Ellipsoid: GRS 1980
+# EPSG:9990     ITRF2020      Geodetic  (degrees)      Ellipsoid: GRS 1980
+
+# EPSG:7789     ITRF2014      Cartesian/Geocentric     Ellipsoid: GRS 1980
+# EPSG:7912     ITRF2014      Geodetic                 Ellipsoid: GRS 1980
+
+# EPSG:32760    UTM Zone 60S  Geodetic                 Ellipsoid: GRS 1980
+
+# EPSG:2193     NZMG2000      Geodetic                 Ellipsoid: GRS 1980
+# EPSG:9528    NZGD2000 + NZVD2016 height,Geodetic     Ellipsoid: NZVD2016 (EPSG:7839)
+
+
+```{r}
+
+# The CSRS PPP value for the Bridge R10-Base Station is :
+XYZ_ITRF14_ep2010p0_RTX =data.frame(X=-4855980.940, Y=355080.488, Z=-4106283.629)
+
+# create a SF object using the ITRF2014 (Epoch 2010.0) Geocentric Coord System 
+XYZ_ITRF14_ep2010p0_RTX_sf = st_as_sf(XYZ_ITRF14_ep2010p0_RTX, coords = c("X","Y","Z"), crs = 7789)
+
+#transform these coordinates to the Geodetic Coordinate System 
+XYZ_ITRF14_ep2010p0_RTX_sf_7912 = XYZ_ITRF14_ep2010p0_RTX_sf %>% 
+  st_transform(7912)
+
+#transform to 2193
+XYZ_ITRF14_ep2010p0_RTX_sf_2193 = XYZ_ITRF14_ep2010p0_RTX_sf_7912 %>% 
+  st_transform(2193)
+
+# ABOVE DOESN'T WORK WE GET THIS ERROR:
+
+# Warning messages:
+# 1: In CPL_transform(x, crs, aoi, pipeline, reverse, desired_accuracy,  :
+#   GDAL Error 1: PROJ: defmodel: Cannot open nz_linz_nzgd2000-20180701.json
+# 2: In CPL_transform(x, crs, aoi, pipeline, reverse, desired_accuracy,  :
+#   GDAL Error 1: PROJ: pipeline: Pipeline: Bad step definition: inv (File not found or invalid)
+
+#transform to 2193
+XYZ_ITRF14_ep2010p0_RTX_sf_2193 = XYZ_ITRF14_ep2010p0_RTX_sf %>% 
+  st_transform(4326) %>% 
+  st_transform(2193) %>% 
+  st_coordinates()
+
+formatC(XYZ_ITRF14_ep2010p0_RTX_sf_2193, digits = 11)
+
+
+
+
+
+XYZ_ITRF14_ep2010p0_RTX_sf_7912_coords = XYZ_ITRF14_ep2010p0_RTX_sf_7912 %>% st_coordinates()
+
+print(formatC(XYZ_ITRF14_ep2010p0_RTX_sf_7912_coords, digits = 12))
+
+
+XYZ_ITRF14_ep2010p0_RTX_sf_7912_coords_X_DMS = DD2DMS(XYZ_ITRF14_ep2010p0_RTX_sf_7912_coords[1])
+XYZ_ITRF14_ep2010p0_RTX_sf_7912_coords_Y_DMS = DD2DMS(XYZ_ITRF14_ep2010p0_RTX_sf_7912_coords[2])
+
+XYZ_ITRF14_ep2010p0_RTX_sf_7912_coords
+
+
+CSRS_PPP_XY = data.frame(X = 399581.927, Y=5534636.546)
+CSRS_PPP_XY_SF = CSRS_PPP_XY %>% 
+  st_as_sf(coords = c("X","Y"), crs = 32760) %>% 
+  st_transform(crs = 2193)
+
+print(formatC(as.numeric(st_coordinates(CSRS_PPP_XY_SF)), digits=11))
+
+DD2DMS = function(DD){
+  # DD = -38.82573703
+  DD_whole = sign(DD) *floor(abs(DD))
+  DD_dec = abs(DD) %% 1
+  DD_min_float = DD_dec * 60
+  DD_min_whole = floor(DD_min_float)
+  DD_min_frac = DD_min_float %% 1
+  DD_sec = DD_min_frac*60
+  DMS = c(DD_whole, DD_min_whole, DD_sec)
+}
+
+
+
+```
+
+#=======================================================
+# Test RTK Settings using results from Ballance Field Test 20/12/23
+#=======================================================
+
+## 1. JVD-OCC3-P7 v01 Analyse the V01 Solution for 12 hour occupation for the JAVAD ---
+
+```{r}
+
+
+
+POS_ffn = "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/data/Field-Test-Ballance-20231220/JVD/OCC3-P7/SOLUTIONS/JVD-OCC3-P7-PPK-DNVK.POS"
+X = anal_POS_generic(POS_ffn = POS_ffn, known_coords = c(1838921.184,	5531125.402))
+
+```
+
+## 2. JVD-OCC3-P7 v02 Use preceise eph and clock ---
+
+```{r}
+
+
+
+POS_ffn = "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/data/Field-Test-Ballance-20231220/JVD/OCC3-P7/SOLUTIONS/JVD-OCC3-P7-PPK-DNVK_v02.POS"
+
+X = anal_POS_generic(POS_ffn = POS_ffn, known_coords = c(1838921.184,	5531125.402))
+
+```
+
+## 3. JVD-OCC3-P7 v03 increas elev mask to 30 degrees ---
+
+```{r}
+
+
+
+POS_ffn = "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/data/Field-Test-Ballance-20231220/JVD/OCC3-P7/SOLUTIONS/JVD-OCC3-P7-PPK-DNVK_v03.POS"
+
+X = anal_POS_generic(POS_ffn = POS_ffn, known_coords = c(1838921.184,	5531125.402))
+
+```
+
+## 4. JVD-OCC3-P7 v04 Uncheck Gallileo and BDS
+
+```{r}
+
+
+
+POS_ffn = "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/data/Field-Test-Ballance-20231220/JVD/OCC3-P7/SOLUTIONS/JVD-OCC3-P7-PPK-DNVK_v04.POS"
+
+X = anal_POS_generic(POS_ffn = POS_ffn, known_coords = c(1838921.184,	5531125.402))
+
+```
+
+
+## 5. JVD-OCC6-P3 v00 
+
+```{r}
+
+
+
+POS_ffn = "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/data/Field-Test-Ballance-20231220/JVD/OCC6-P3/SOLUTIONS/JVD-OCC6-P3-PPK-DNVK.POS"
+
+X = anal_POS_generic(POS_ffn = POS_ffn, known_coords = c(1838911.099,	5531126.121))
+
+```
+
+# 6. JVD-OCC7-P2 v00 
+
+```{r}
+
+
+
+POS_ffn = "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/data/Field-Test-Ballance-20231220/JVD/OCC7-P2/SOLUTIONS/JVD-OCC7-P2-PPK-DNVK.POS"
+
+X = anal_POS_generic(POS_ffn = POS_ffn, known_coords = c(1838904.908,	5531130.900))
+
+```
+
+## 7. JVD-OCC3-P7 v01 Analyse the V00 Solution for 12 hour occupation for the JAVAD with a Age setting of 10 sec (prev 30 sec)---
+
+```{r}
+
+
+
+POS_ffn = "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/data/Field-Test-Ballance-20231220/JVD/OCC3-P7/SOLUTIONS/JVD-OCC3-P7-PPK-DNVK.POS"
+X = anal_POS_generic(POS_ffn = POS_ffn, known_coords = c(1838921.146,	5531125.433))
+
+# [1] "LAT =  5531125.5954"
+# [1] "LON =   1838921.034"
+# [1] "ELEV =  122.015"
+# [1] "ACCURACY +/- PREC (ALL)            =  0.1973  +/-  0.6524 m"
+# [1] "ACCURACY +/- PREC (FLOAT)          =  0.1772  +/-  0.05766 m"
+# [1] "ACCURACY +/- PREC (FIXED)          =  0.3217  +/-  1.424 m"
+# [1] "ACCURACY +/- PREC (FIXED or FLOAT) =  0.1973  +/-  0.6524 m"
+# [1] "PREC =  0.6524"
+# [1] "PERCENT FIXED =  20.57 %"
+# [1] "PERCENT FLOAT =  79.43 %"
+# [1] " 1838921.034 5531125.5954 122.015 0.1973 0.6524 0.1772 0.05766"
+
+```
+
+## 8. JVD-OCC5-P5 ---
+
+```{r}
+
+POS_ffn = "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/data/Field-Test-Ballance-20231220/JVD/OCC5-P5/SOLUTIONS/JVD-OCC5-P5-PPK-DNVK.POS"
+X = anal_POS_generic(POS_ffn = POS_ffn, known_coords = get_peg_loc(5))
+
+
+```
+
+#=======================================================
+# Formally Analyse data using PPK_CORS_DEFAULT.conf (PPK_CORS_v05.conf) on all data from 20/12/23
+#=======================================================
+
+1. Method PPK_CORS
+
+## 1. R10-ROVER-OCC3-P1 ---
+
+```{r}
+
+POS_ffn = "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/data/Field-Test-Ballance-20231220/R10-ROVER/OCC3-P1/SOLUTIONS/R10-ROVER-OCC3-P1-PPK-DNVK.POS"
+X = anal_POS_generic(POS_ffn = POS_ffn, known_coords = get_peg_loc(1))
+
+
+```
+
+## 2. R10-ROVER-OCC5-P4 ---
+
+```{r}
+
+POS_ffn = "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/data/Field-Test-Ballance-20231220/R10-ROVER/OCC5-P4/SOLUTIONS/R10-ROVER-OCC5-P4-PPK-DNVK.POS"
+X = anal_POS_generic(POS_ffn = POS_ffn, known_coords = get_peg_loc(4))
+
+
+```
+
+## 3. R10-ROVER-OCC6-P7 ---
+
+```{r}
+
+POS_ffn = "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/data/Field-Test-Ballance-20231220/R10-ROVER/OCC6-P7/SOLUTIONS/R10-ROVER-OCC6-P7-PPK-DNVK.POS"
+X = anal_POS_generic(POS_ffn = POS_ffn, known_coords = get_peg_loc(7))
+
+
+```
+
+## 4. R10-ROVER-OCC7-P3 ---
+
+```{r}
+
+POS_ffn = "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/data/Field-Test-Ballance-20231220/R10-ROVER/OCC7-P3/SOLUTIONS/R10-ROVER-OCC7-P3-PPK-DNVK.POS"
+X = anal_POS_generic(POS_ffn = POS_ffn, known_coords = get_peg_loc(3))
+
+
+```
+
+## 5. R10-ROVER-OCC8-PX-PPK-DNVK ---
+
+```{r}
+
+POS_ffn = "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/data/Field-Test-Ballance-20231220/R10-ROVER/OCC7-P3/SOLUTIONS/R10-ROVER-OCC7-P3-PPK-DNVK.POS"
+X = anal_POS_generic(POS_ffn = POS_ffn, known_coords = get_peg_loc(3))
+
+
+```
+
+
+
+
+## 6. EML-OCC5-P2-PPK-DNVK ---
+
+```{r}
+
+REC = "EML"
+OCC = 5
+PEG = 2
+MET = "PPK-DNVK"
+
+POS_ffn_stub = "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/data/FINAL_SOLUTIONS/"
+
+POS_ffn_sdn = paste0(REC,"-OCC",OCC,"-P",PEG,"-",MET,".POS")
+POS_ffn = paste0(POS_ffn_stub, POS_ffn_sdn)
+
+
+
+X = anal_POS_generic(POS_ffn = POS_ffn, known_coords = get_peg_loc(PEG),POS_FMT = 5)
+
+
+```
+
+
+## 7. EML-OCC6-P8-PPK-DNVK ---
+
+```{r}
+
+REC = "EML"
+OCC = 6
+PEG = 8
+MET = "PPK-DNVK"
+
+POS_ffn_stub = "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/data/FINAL_SOLUTIONS/"
+
+POS_ffn_sdn = paste0(REC,"-OCC",OCC,"-P",PEG,"-",MET,".POS")
+POS_ffn = paste0(POS_ffn_stub, POS_ffn_sdn)
+
+
+
+X = anal_POS_generic(POS_ffn = POS_ffn, known_coords = get_peg_loc(PEG),POS_FMT = 5)
+
+
+```
+
+
+## 8. EML-OCC7-P4-PPK-DNVK ---
+
+```{r}
+
+REC = "EML"
+OCC = 7
+PEG = 4
+MET = "PPK-DNVK"
+
+POS_ffn_stub = "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/data/FINAL_SOLUTIONS/"
+
+POS_ffn_sdn = paste0(REC,"-OCC",OCC,"-P",PEG,"-",MET,".POS")
+POS_ffn = paste0(POS_ffn_stub, POS_ffn_sdn)
+
+
+
+X = anal_POS_generic(POS_ffn = POS_ffn, known_coords = get_peg_loc(PEG),POS_FMT = 5)
+
+
+```
+
+## 8. EML-OCC8-P6-PPK-DNVK ---
+
+```{r}
+
+REC = "EML"
+OCC = 8
+PEG = 6
+MET = "PPK-DNVK"
+
+POS_ffn_stub = "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/data/FINAL_SOLUTIONS/"
+
+POS_ffn_sdn = paste0(REC,"-OCC",OCC,"-P",PEG,"-",MET,".POS")
+POS_ffn = paste0(POS_ffn_stub, POS_ffn_sdn)
+
+
+
+X = anal_POS_generic(POS_ffn = POS_ffn, known_coords = get_peg_loc(PEG),POS_FMT = 5)
+
+
+```
+
+
+## 9. EML-OCC9-P2-PPK-DNVK ---
+
+```{r}
+
+REC = "EML"
+OCC = 9
+PEG = 1
+MET = "PPK-DNVK"
+
+POS_ffn_stub = "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/data/FINAL_SOLUTIONS/"
+
+POS_ffn_sdn = paste0(REC,"-OCC",OCC,"-P",PEG,"-",MET,".POS")
+POS_ffn = paste0(POS_ffn_stub, POS_ffn_sdn)
+
+
+
+X = anal_POS_generic(POS_ffn = POS_ffn, known_coords = get_peg_loc(PEG),POS_FMT = 5)
+
+
+```
+
+## 10. EML-OCC1-P7-PPK-DNVK ---
+
+```{r}
+
+REC = "EML"
+OCC = 1
+PEG = 7
+MET = "PPK-DNVK"
+
+POS_ffn_stub = "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/data/FINAL_SOLUTIONS/"
+
+POS_ffn_sdn = paste0(REC,"-OCC",OCC,"-P",PEG,"-",MET,".POS")
+POS_ffn = paste0(POS_ffn_stub, POS_ffn_sdn)
+
+
+
+X = anal_POS_generic(POS_ffn = POS_ffn, known_coords = get_peg_loc(PEG),POS_FMT = 5)
+
+
+```
+
+## 10. EML-OCC2-P6-PPK-DNVK ---
+
+```{r}
+
+REC = "EML"
+OCC = 2
+PEG = 6
+MET = "PPK-DNVK"
+
+POS_ffn_stub = "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/data/FINAL_SOLUTIONS/"
+
+POS_ffn_sdn = paste0(REC,"-OCC",OCC,"-P",PEG,"-",MET,".POS")
+POS_ffn = paste0(POS_ffn_stub, POS_ffn_sdn)
+
+
+
+X = anal_POS_generic(POS_ffn = POS_ffn, known_coords = get_peg_loc(PEG),POS_FMT = 5)
+
+
+```
+
+## 11. EML-OCC3-P3-PPK-DNVK ---
+
+```{r}
+
+REC = "EML"
+OCC = 3
+PEG = 3
+MET = "PPK-DNVK"
+
+POS_ffn_stub = "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/data/FINAL_SOLUTIONS/"
+
+POS_ffn_sdn = paste0(REC,"-OCC",OCC,"-P",PEG,"-",MET,".POS")
+POS_ffn = paste0(POS_ffn_stub, POS_ffn_sdn)
+
+
+
+X = anal_POS_generic(POS_ffn = POS_ffn, known_coords = get_peg_loc(PEG),POS_FMT = 5)
+
+
+```
+
+## 11. JVD-OCC3-P7-PPK-DNVK ---
+
+```{r}
+
+REC = "JVD"
+OCC = 3
+PEG = 7
+MET = "PPK-DNVK"
+
+POS_ffn_stub = "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/data/FINAL_SOLUTIONS/"
+
+POS_ffn_sdn = paste0(REC,"-OCC",OCC,"-P",PEG,"-",MET,".POS")
+POS_ffn = paste0(POS_ffn_stub, POS_ffn_sdn)
+
+
+
+X = anal_POS_generic(POS_ffn = POS_ffn, known_coords = get_peg_loc(PEG),POS_FMT = 5)
+
+
+```
+
+## 11. JVD-OCC5-P2-PPK-DNVK ---
+
+```{r}
+
+REC = "JVD"
+OCC = 5
+PEG = 5
+MET = "PPK-DNVK"
+
+POS_ffn_stub = "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/data/FINAL_SOLUTIONS/"
+
+POS_ffn_sdn = paste0(REC,"-OCC",OCC,"-P",PEG,"-",MET,".POS")
+POS_ffn = paste0(POS_ffn_stub, POS_ffn_sdn)
+
+
+
+X = anal_POS_generic(POS_ffn = POS_ffn, known_coords = get_peg_loc(PEG),POS_FMT = 5)
+
+
+```
+
+## 12. EML-OCC3-P3-PPK-DNVK ---
+
+```{r}
+
+REC = "EML"
+OCC = 3
+PEG = 3
+MET = "PPK-DNVK"
+
+POS_ffn_stub = "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/data/FINAL_SOLUTIONS/"
+
+POS_ffn_sdn = paste0(REC,"-OCC",OCC,"-P",PEG,"-",MET,".POS")
+POS_ffn = paste0(POS_ffn_stub, POS_ffn_sdn)
+
+
+
+X = anal_POS_generic(POS_ffn = POS_ffn, known_coords = get_peg_loc(PEG),POS_FMT = 5)
+
+
+```
+
+## 12. JVD-OCC6-P3-PPK-DNVK ---
+
+```{r}
+
+REC = "JVD"
+OCC = 6
+PEG = 3
+MET = "PPK-DNVK"
+
+POS_ffn_stub = "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/data/FINAL_SOLUTIONS/"
+
+POS_ffn_sdn = paste0(REC,"-OCC",OCC,"-P",PEG,"-",MET,".POS")
+POS_ffn = paste0(POS_ffn_stub, POS_ffn_sdn)
+
+
+
+X = anal_POS_generic(POS_ffn = POS_ffn, known_coords = get_peg_loc(PEG),POS_FMT = 5)
+
+
+```
+
+## 13. JVD-OCC7-P2-PPK-DNVK ---
+
+```{r}
+
+REC = "JVD"
+OCC = 7
+PEG = 2
+MET = "PPK-DNVK"
+
+POS_ffn_stub = "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/data/FINAL_SOLUTIONS/"
+
+POS_ffn_sdn = paste0(REC,"-OCC",OCC,"-P",PEG,"-",MET,".POS")
+POS_ffn = paste0(POS_ffn_stub, POS_ffn_sdn)
+
+
+
+X = anal_POS_generic(POS_ffn = POS_ffn, known_coords = get_peg_loc(PEG),POS_FMT = 5)
+
+
+```
+
+## 14. JVD-OCC8-P1-PPK-DNVK ---
+
+```{r}
+
+REC = "JVD"
+OCC = 8
+PEG = 1
+MET = "PPK-DNVK"
+
+POS_ffn_stub = "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/data/FINAL_SOLUTIONS/"
+
+POS_ffn_sdn = paste0(REC,"-OCC",OCC,"-P",PEG,"-",MET,".POS")
+POS_ffn = paste0(POS_ffn_stub, POS_ffn_sdn)
+
+
+
+X = anal_POS_generic(POS_ffn = POS_ffn, known_coords = get_peg_loc(PEG),POS_FMT = 5)
+
+
+```
+
+## 15. JVD-OCC9-P8-PPK-DNVK ---
+
+```{r}
+
+REC = "JVD"
+OCC = 9
+PEG = 8
+MET = "PPK-DNVK"
+
+POS_ffn_stub = "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/data/FINAL_SOLUTIONS/"
+
+POS_ffn_sdn = paste0(REC,"-OCC",OCC,"-P",PEG,"-",MET,".POS")
+POS_ffn = paste0(POS_ffn_stub, POS_ffn_sdn)
+
+
+
+X = anal_POS_generic(POS_ffn = POS_ffn, known_coords = get_peg_loc(PEG),POS_FMT = 5)
+
+
+```
+
+## 16. R10-ROVER-OCC5-P4-PPK-DNVK ---
+
+```{r}
+
+REC = "R10-ROVER"
+OCC = 5
+PEG = 4
+MET = "PPK-DNVK"
+
+POS_ffn_stub = "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/data/FINAL_SOLUTIONS/"
+
+POS_ffn_sdn = paste0(REC,"-OCC",OCC,"-P",PEG,"-",MET,".POS")
+POS_ffn = paste0(POS_ffn_stub, POS_ffn_sdn)
+
+
+
+X = anal_POS_generic(POS_ffn = POS_ffn, known_coords = get_peg_loc(PEG),POS_FMT = 5)
+
+
+```
+
+## 17. R10-ROVER-OCC3-P1-PPK-DNVK ---
+
+```{r}
+
+REC = "R10-ROVER"
+OCC = 3
+PEG = 1
+MET = "PPK-DNVK"
+
+POS_ffn_stub = "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/data/FINAL_SOLUTIONS/"
+
+POS_ffn_sdn = paste0(REC,"-OCC",OCC,"-P",PEG,"-",MET,".POS")
+POS_ffn = paste0(POS_ffn_stub, POS_ffn_sdn)
+
+
+
+X = anal_POS_generic(POS_ffn = POS_ffn, known_coords = get_peg_loc(PEG),POS_FMT = 5)
+
+
+```
+
+## 18. R10-ROVER-OCC3-P1-PPK-DNVK ---
+
+```{r}
+
+REC = "R10-ROVER"
+OCC = 3
+PEG = 1
+MET = "PPK-DNVK"
+
+POS_ffn_stub = "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/data/FINAL_SOLUTIONS/"
+
+POS_ffn_sdn = paste0(REC,"-OCC",OCC,"-P",PEG,"-",MET,".POS")
+POS_ffn = paste0(POS_ffn_stub, POS_ffn_sdn)
+
+
+
+X = anal_POS_generic(POS_ffn = POS_ffn, known_coords = get_peg_loc(PEG),POS_FMT = 5)
+
+
+```
+
+## 19. R10-ROVER-OCC6-P7-PPK-DNVK ---
+
+```{r}
+
+REC = "R10-ROVER"
+OCC = 6
+PEG = 7
+MET = "PPK-DNVK"
+
+POS_ffn_stub = "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/data/FINAL_SOLUTIONS/"
+
+POS_ffn_sdn = paste0(REC,"-OCC",OCC,"-P",PEG,"-",MET,".POS")
+POS_ffn = paste0(POS_ffn_stub, POS_ffn_sdn)
+
+
+
+X = anal_POS_generic(POS_ffn = POS_ffn, known_coords = get_peg_loc(PEG),POS_FMT = 5)
+
+
+```
+
+## 20. R10-ROVER-OCC7-P3-PPK-DNVK ---
+
+```{r}
+
+REC = "R10-ROVER"
+OCC = 7
+PEG = 3
+MET = "PPK-DNVK"
+
+POS_ffn_stub = "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/data/FINAL_SOLUTIONS/"
+
+POS_ffn_sdn = paste0(REC,"-OCC",OCC,"-P",PEG,"-",MET,".POS")
+POS_ffn = paste0(POS_ffn_stub, POS_ffn_sdn)
+
+
+
+X = anal_POS_generic(POS_ffn = POS_ffn, known_coords = get_peg_loc(PEG),POS_FMT = 5)
+
+
+```
+
+## 21. R10-ROVER-OCC8-P3-PPK-DNVK ---
+
+```{r}
+
+REC = "R10-ROVER"
+OCC = 8
+PEG = 2
+MET = "PPK-DNVK"
+
+POS_ffn_stub = "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/data/FINAL_SOLUTIONS/"
+
+POS_ffn_sdn = paste0(REC,"-OCC",OCC,"-P",PEG,"-",MET,".POS")
+POS_ffn = paste0(POS_ffn_stub, POS_ffn_sdn)
+
+
+
+X = anal_POS_generic(POS_ffn = POS_ffn, known_coords = get_peg_loc(PEG),POS_FMT = 5)
+
+
+```
+
+## 22. CAR-OCC1-P4-PPK-DNVK ---
+
+```{r}
+
+REC = "CAR"
+OCC = 1
+PEG = 4
+MET = "PPK-DNVK"
+
+POS_ffn_stub = "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/data/FINAL_SOLUTIONS/"
+
+POS_ffn_sdn = paste0(REC,"-OCC",OCC,"-P",PEG,"-",MET,".POS")
+POS_ffn = paste0(POS_ffn_stub, POS_ffn_sdn)
+
+
+
+X = anal_POS_generic(POS_ffn = POS_ffn, known_coords = get_peg_loc(PEG),POS_FMT = 5)
+
+
+```
+
+## 23. CAR-OCC2-P7-PPK-DNVK ---
+
+```{r}
+
+REC = "CAR"
+OCC = 2
+PEG = 7
+MET = "PPK-DNVK"
+
+POS_ffn_stub = "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/data/FINAL_SOLUTIONS/"
+
+POS_ffn_sdn = paste0(REC,"-OCC",OCC,"-P",PEG,"-",MET,".POS")
+POS_ffn = paste0(POS_ffn_stub, POS_ffn_sdn)
+
+
+
+X = anal_POS_generic(POS_ffn = POS_ffn, known_coords = get_peg_loc(PEG),POS_FMT = 5)
+
+
+```
+
+## 24. CAR-OCC1-P4-PPK-R10 ---
+
+```{r}
+
+REC = "CAR"
+OCC = 1
+PEG = 4
+MET = "PPK-R10"
+
+POS_ffn_stub = "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/data/FINAL_SOLUTIONS/"
+
+POS_ffn_sdn = paste0(REC,"-OCC",OCC,"-P",PEG,"-",MET,".POS")
+POS_ffn = paste0(POS_ffn_stub, POS_ffn_sdn)
+
+
+
+X = anal_POS_generic(POS_ffn = POS_ffn, known_coords = get_peg_loc(PEG),POS_FMT = 5)
+
+
+```
+
+## 25. CAR-OCC2-P7-PPK-R10 ---
+
+```{r}
+
+REC = "CAR"
+OCC = 2
+PEG = 7
+MET = "PPK-R10"
+
+POS_ffn_stub = "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/data/FINAL_SOLUTIONS/"
+
+POS_ffn_sdn = paste0(REC,"-OCC",OCC,"-P",PEG,"-",MET,".POS")
+POS_ffn = paste0(POS_ffn_stub, POS_ffn_sdn)
+
+
+
+X = anal_POS_generic(POS_ffn = POS_ffn, known_coords = get_peg_loc(PEG),POS_FMT = 5)
+
+
+```
+
+## 26. TOP-OCC1-P5-PPK-R10 ---
+
+```{r}
+
+REC = "TOP"
+OCC = 1
+PEG = 5
+MET = "PPK-R10"
+
+POS_ffn_stub = "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/data/FINAL_SOLUTIONS/"
+
+POS_ffn_sdn = paste0(REC,"-OCC",OCC,"-P",PEG,"-",MET," (1).POS")
+POS_ffn = paste0(POS_ffn_stub, POS_ffn_sdn)
+
+file.exists(POS_ffn)
+
+X = anal_POS_generic(POS_ffn = POS_ffn, known_coords = get_peg_loc(PEG),POS_FMT = 5)
+
+
+```
+
+## 27. TOP-OCC1-P5-PPK-R10 ---
+
+```{r}
+
+REC = "TOP"
+OCC = 2
+PEG = 8
+MET = "PPK-R10"
+
+POS_ffn_stub = "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/data/FINAL_SOLUTIONS/"
+
+POS_ffn_sdn = paste0(REC,"-OCC",OCC,"-P",PEG,"-",MET,".POS")
+POS_ffn = paste0(POS_ffn_stub, POS_ffn_sdn)
+
+file.exists(POS_ffn)
+
+X = anal_POS_generic(POS_ffn = POS_ffn, known_coords = get_peg_loc(PEG),POS_FMT = 5)
+
+
+```
+
+## 28. JVD-OCC1-P6-PPK-R10 ---
+
+```{r}
+
+REC = "JVD"
+OCC = 1
+PEG = 6
+MET = "PPK-R10"
+
+POS_ffn_stub = "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/data/FINAL_SOLUTIONS/"
+
+POS_ffn_sdn = paste0(REC,"-OCC",OCC,"-P",PEG,"-",MET,".POS")
+POS_ffn = paste0(POS_ffn_stub, POS_ffn_sdn)
+
+file.exists(POS_ffn)
+
+X = anal_POS_generic(POS_ffn = POS_ffn, known_coords = get_peg_loc(PEG),POS_FMT = 5)
+
+
+```
+
+## 30 JVD-OCC2-P4-PPK-R10 ---
+
+```{r}
+
+REC = "JVD"
+OCC = 2
+PEG = 4
+MET = "PPK-R10"
+
+POS_ffn_stub = "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/data/FINAL_SOLUTIONS/"
+
+POS_ffn_sdn = paste0(REC,"-OCC",OCC,"-P",PEG,"-",MET,".POS")
+POS_ffn = paste0(POS_ffn_stub, POS_ffn_sdn)
+
+file.exists(POS_ffn)
+
+X = anal_POS_generic(POS_ffn = POS_ffn, known_coords = get_peg_loc(PEG),POS_FMT = 5)
+
+
+```
+
+## 31 EML-OCC1-P7-PPK-R10 ---
+
+```{r}
+
+REC = "EML"
+OCC = 1
+PEG = 7
+MET = "PPK-R10"
+
+POS_ffn_stub = "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/data/FINAL_SOLUTIONS/"
+
+POS_ffn_sdn = paste0(REC,"-OCC",OCC,"-P",PEG,"-",MET,".POS")
+POS_ffn = paste0(POS_ffn_stub, POS_ffn_sdn)
+
+file.exists(POS_ffn)
+
+X = anal_POS_generic(POS_ffn = POS_ffn, known_coords = get_peg_loc(PEG),POS_FMT = 5)
+
+
+```
+
+## 32 EML-OCC2-P6-PPK-R10 ---
+
+```{r}
+
+REC = "EML"
+OCC = 2
+PEG = 6
+MET = "PPK-R10"
+
+POS_ffn_stub = "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/data/FINAL_SOLUTIONS/"
+
+POS_ffn_sdn = paste0(REC,"-OCC",OCC,"-P",PEG,"-",MET,".POS")
+POS_ffn = paste0(POS_ffn_stub, POS_ffn_sdn)
+
+file.exists(POS_ffn)
+
+X = anal_POS_generic(POS_ffn = POS_ffn, known_coords = get_peg_loc(PEG),POS_FMT = 5)
+
+
+```
+
+## 33 R10-ROVER-OCC1-P8-PPK-R10 ---
+
+```{r}
+
+REC = "R10-ROVER"
+OCC = 1
+PEG = 8
+MET = "PPK-R10"
+
+POS_ffn_stub = "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/data/FINAL_SOLUTIONS/"
+
+POS_ffn_sdn = paste0(REC,"-OCC",OCC,"-P",PEG,"-",MET,".POS")
+POS_ffn = paste0(POS_ffn_stub, POS_ffn_sdn)
+
+file.exists(POS_ffn)
+
+X = anal_POS_generic(POS_ffn = POS_ffn, known_coords = get_peg_loc(PEG),POS_FMT = 5)
+
+
+```
+
+## 34 R10-ROVER-OCC2-P5-PPK-R10 ---
+
+```{r}
+
+REC = "R10-ROVER"
+OCC = 2
+PEG = 5
+MET = "PPK-R10"
+
+POS_ffn_stub = "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/data/FINAL_SOLUTIONS/"
+
+POS_ffn_sdn = paste0(REC,"-OCC",OCC,"-P",PEG,"-",MET,".POS")
+POS_ffn = paste0(POS_ffn_stub, POS_ffn_sdn)
+
+file.exists(POS_ffn)
+
+X = anal_POS_generic(POS_ffn = POS_ffn, known_coords = get_peg_loc(PEG),POS_FMT = 5)
+
+
+```
+
+## 35 CAR-OCC2-P7-PPK-R10 ---
+
+```{r}
+
+REC = "CAR"
+OCC = 2
+PEG = 7
+MET = "PPK-R10"
+
+POS_ffn_stub = "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/data/FINAL_SOLUTIONS/"
+
+POS_ffn_sdn = paste0(REC,"-OCC",OCC,"-P",PEG,"-",MET,".POS")
+POS_ffn = paste0(POS_ffn_stub, POS_ffn_sdn)
+
+file.exists(POS_ffn)
+
+X = anal_POS_generic(POS_ffn = POS_ffn, known_coords = get_peg_loc(PEG),POS_FMT = 5)
+
+
+```
+
+## 36 EML-OCC5-P2-PPK-R10 ---
+
+```{r}
+
+REC = "EML"
+OCC = 5
+PEG = 2
+MET = "PPK-R10"
+
+POS_ffn_stub = "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/data/FINAL_SOLUTIONS/"
+
+POS_ffn_sdn = paste0(REC,"-OCC",OCC,"-P",PEG,"-",MET,".POS")
+POS_ffn = paste0(POS_ffn_stub, POS_ffn_sdn)
+
+file.exists(POS_ffn)
+
+X = anal_POS_generic(POS_ffn = POS_ffn, known_coords = get_peg_loc(PEG),POS_FMT = 5)
+
+
+```
+
+## 37 JVD-OCC6-P3-PPK-R10 ---
+
+```{r}
+
+REC = "JVD"
+OCC = 6
+PEG = 3
+MET = "PPK-R10"
+
+POS_ffn_stub = "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/data/FINAL_SOLUTIONS/"
+
+POS_ffn_sdn = paste0(REC,"-OCC",OCC,"-P",PEG,"-",MET,".POS")
+POS_ffn = paste0(POS_ffn_stub, POS_ffn_sdn)
+
+file.exists(POS_ffn)
+
+X = anal_POS_generic(POS_ffn = POS_ffn, known_coords = get_peg_loc(PEG),POS_FMT = 5)
+
+
+```
+
+## 38 TOP-OCC1-P5-PPK-DNVK ---
+
+```{r}
+
+REC = "TOP"
+OCC = 1
+PEG = 5
+MET = "PPK-DNVK"
+
+POS_ffn_stub = "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/data/FINAL_SOLUTIONS/"
+
+POS_ffn_sdn = paste0(REC,"-OCC",OCC,"-P",PEG,"-",MET,".POS")
+POS_ffn = paste0(POS_ffn_stub, POS_ffn_sdn)
+
+file.exists(POS_ffn)
+
+X = anal_POS_generic(POS_ffn = POS_ffn, known_coords = get_peg_loc(PEG),POS_FMT = 5)
+
+
+```
+
+## 39 TOP-OCC2-P8-PPK-DNVK ---
+
+```{r}
+
+REC = "TOP"
+OCC = 2
+PEG = 8
+MET = "PPK-DNVK"
+
+POS_ffn_stub = "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/data/FINAL_SOLUTIONS/"
+
+POS_ffn_sdn = paste0(REC,"-OCC",OCC,"-P",PEG,"-",MET,".POS")
+POS_ffn = paste0(POS_ffn_stub, POS_ffn_sdn)
+
+file.exists(POS_ffn)
+
+X = anal_POS_generic(POS_ffn = POS_ffn, known_coords = get_peg_loc(PEG),POS_FMT = 5)
+
+
+```
+
+
+## 40 TOP-OCC1-P5-PPK-R10 ---
+
+```{r}
+
+REC = "TOP"
+OCC = 1
+PEG = 5
+MET = "PPK-R10"
+
+POS_ffn_stub = "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/data/FINAL_SOLUTIONS/"
+
+POS_ffn_sdn = paste0(REC,"-OCC",OCC,"-P",PEG,"-",MET,".POS")
+POS_ffn = paste0(POS_ffn_stub, POS_ffn_sdn)
+
+file.exists(POS_ffn)
+
+X = anal_POS_generic(POS_ffn = POS_ffn, known_coords = get_peg_loc(PEG),POS_FMT = 5)
+
+
+```
+
+## 41 TOP-OCC2-P8-PPK-R10 ---
+
+```{r}
+
+REC = "TOP"
+OCC = 2
+PEG = 8
+MET = "PPK-R10"
+
+POS_ffn_stub = "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/data/FINAL_SOLUTIONS/"
+
+POS_ffn_sdn = paste0(REC,"-OCC",OCC,"-P",PEG,"-",MET,".POS")
+POS_ffn = paste0(POS_ffn_stub, POS_ffn_sdn)
+
+file.exists(POS_ffn)
+
+X = anal_POS_generic(POS_ffn = POS_ffn, known_coords = get_peg_loc(PEG),POS_FMT = 5)
+
+
+```
+
+## 42 R10-ROVER-OCC5-P4-PPK-R10 ---
+
+```{r}
+
+REC = "R10-ROVER"
+OCC = 5
+PEG = 4
+MET = "PPK-R10"
+
+POS_ffn_stub = "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/data/FINAL_SOLUTIONS/"
+
+POS_ffn_sdn = paste0(REC,"-OCC",OCC,"-P",PEG,"-",MET,".POS")
+POS_ffn = paste0(POS_ffn_stub, POS_ffn_sdn)
+
+file.exists(POS_ffn)
+
+X = anal_POS_generic(POS_ffn = POS_ffn, known_coords = get_peg_loc(PEG),POS_FMT = 5)
+
+
+```
+
+## 43 JVD-OCC5-P5-PPK-R10 ---
+
+```{r}
+
+REC = "JVD"
+OCC = 5
+PEG = 5
+MET = "PPK-R10"
+
+POS_ffn_stub = "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/data/FINAL_SOLUTIONS/"
+
+POS_ffn_sdn = paste0(REC,"-OCC",OCC,"-P",PEG,"-",MET,".POS")
+POS_ffn = paste0(POS_ffn_stub, POS_ffn_sdn)
+
+file.exists(POS_ffn)
+
+X = anal_POS_generic(POS_ffn = POS_ffn, known_coords = get_peg_loc(PEG),POS_FMT = 5)
+
+
+```
+
+## 44 R10-ROVER-OCC5-P5-PPK-R10 ---
+
+```{r}
+
+REC = "R10-ROVER"
+OCC = 6
+PEG = 7
+MET = "PPK-R10"
+
+POS_ffn_stub = "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/data/FINAL_SOLUTIONS/"
+
+POS_ffn_sdn = paste0(REC,"-OCC",OCC,"-P",PEG,"-",MET,".POS")
+POS_ffn = paste0(POS_ffn_stub, POS_ffn_sdn)
+
+file.exists(POS_ffn)
+
+X = anal_POS_generic(POS_ffn = POS_ffn, known_coords = get_peg_loc(PEG),POS_FMT = 5)
+
+
+```
+
+
+
+
+## 45 EML-OCC6-P8-PPK-R10 ---
+
+```{r}
+
+REC = "EML"
+OCC = 6
+PEG = 8
+MET = "PPK-R10"
+
+POS_ffn_stub = "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/data/FINAL_SOLUTIONS/"
+
+POS_ffn_sdn = paste0(REC,"-OCC",OCC,"-P",PEG,"-",MET,".POS")
+POS_ffn = paste0(POS_ffn_stub, POS_ffn_sdn)
+
+file.exists(POS_ffn)
+
+X = anal_POS_generic(POS_ffn = POS_ffn, known_coords = get_peg_loc(PEG),POS_FMT = 5)
+
+
+```
+
+## 46 JVD-OCC7-P2-PPK-R10 ---
+
+```{r}
+
+REC = "JVD"
+OCC = 7
+PEG = 2
+MET = "PPK-R10"
+
+POS_ffn_stub = "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/data/FINAL_SOLUTIONS/"
+
+POS_ffn_sdn = paste0(REC,"-OCC",OCC,"-P",PEG,"-",MET,".POS")
+POS_ffn = paste0(POS_ffn_stub, POS_ffn_sdn)
+
+file.exists(POS_ffn)
+
+X = anal_POS_generic(POS_ffn = POS_ffn, known_coords = get_peg_loc(PEG),POS_FMT = 5)
+
+
+```
+
+
+
+
+## 47 R10-ROVER-OCC7-P3-PPK-R10 ---
+
+```{r}
+
+REC = "R10-ROVER"
+OCC = 7
+PEG = 3
+MET = "PPK-R10"
+
+POS_ffn_stub = "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/data/FINAL_SOLUTIONS/"
+
+POS_ffn_sdn = paste0(REC,"-OCC",OCC,"-P",PEG,"-",MET,".POS")
+POS_ffn = paste0(POS_ffn_stub, POS_ffn_sdn)
+
+file.exists(POS_ffn)
+
+X = anal_POS_generic(POS_ffn = POS_ffn, known_coords = get_peg_loc(PEG),POS_FMT = 5)
+
+
+```
+
+
+
+
+## 48 EML-OCC7-P4-PPK-R10 ---
+
+```{r}
+
+REC = "EML"
+OCC = 7
+PEG = 4
+MET = "PPK-R10"
+
+POS_ffn_stub = "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/data/FINAL_SOLUTIONS/"
+
+POS_ffn_sdn = paste0(REC,"-OCC",OCC,"-P",PEG,"-",MET,".POS")
+POS_ffn = paste0(POS_ffn_stub, POS_ffn_sdn)
+
+file.exists(POS_ffn)
+
+X = anal_POS_generic(POS_ffn = POS_ffn, known_coords = get_peg_loc(PEG),POS_FMT = 5)
+
+
+```
+
+
+
+
+## 48 JVD-OCC8-P1-PPK-R10 ---
+
+```{r}
+
+REC = "JVD"
+OCC = 8
+PEG = 1
+MET = "PPK-R10"
+
+POS_ffn_stub = "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/data/FINAL_SOLUTIONS/"
+
+POS_ffn_sdn = paste0(REC,"-OCC",OCC,"-P",PEG,"-",MET,".POS")
+POS_ffn = paste0(POS_ffn_stub, POS_ffn_sdn)
+
+file.exists(POS_ffn)
+
+X = anal_POS_generic(POS_ffn = POS_ffn, known_coords = get_peg_loc(PEG),POS_FMT = 5)
+
+
+```
+
+
+
+
+## 49 R10-ROVER-OCC8-P2-PPK-R10 ---
+
+```{r}
+
+REC = "R10-ROVER"
+OCC = 8
+PEG = 2
+MET = "PPK-R10"
+
+POS_ffn_stub = "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/data/FINAL_SOLUTIONS/"
+
+POS_ffn_sdn = paste0(REC,"-OCC",OCC,"-P",PEG,"-",MET,".POS")
+POS_ffn = paste0(POS_ffn_stub, POS_ffn_sdn)
+
+file.exists(POS_ffn)
+
+X = anal_POS_generic(POS_ffn = POS_ffn, known_coords = get_peg_loc(PEG),POS_FMT = 5)
+
+
+```
+
+
+
+
+
+## 50 EML-OCC8-P6-PPK-R10 ---
+
+```{r}
+
+REC = "EML"
+OCC = 8
+PEG = 6
+MET = "PPK-R10"
+
+POS_ffn_stub = "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/data/FINAL_SOLUTIONS/"
+
+POS_ffn_sdn = paste0(REC,"-OCC",OCC,"-P",PEG,"-",MET,".POS")
+POS_ffn = paste0(POS_ffn_stub, POS_ffn_sdn)
+
+file.exists(POS_ffn)
+
+X = anal_POS_generic(POS_ffn = POS_ffn, known_coords = get_peg_loc(PEG),POS_FMT = 5)
+
+
+```
+
+
+
+
+
+## 50 JVD-OCC9-P8-PPK-R10 ---
+
+```{r}
+
+REC = "JVD"
+OCC = 9
+PEG = 8
+MET = "PPK-R10"
+
+POS_ffn_stub = "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/data/FINAL_SOLUTIONS/"
+
+POS_ffn_sdn = paste0(REC,"-OCC",OCC,"-P",PEG,"-",MET,".POS")
+POS_ffn = paste0(POS_ffn_stub, POS_ffn_sdn)
+
+file.exists(POS_ffn)
+
+X = anal_POS_generic(POS_ffn = POS_ffn, known_coords = get_peg_loc(PEG),POS_FMT = 5)
+
+
+```
+
+## 51 EML-OCC9-P1-PPK-R10 ---
+
+```{r}
+
+REC = "EML"
+OCC = 9
+PEG = 1
+MET = "PPK-R10"
+
+POS_ffn_stub = "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/data/FINAL_SOLUTIONS/"
+
+POS_ffn_sdn = paste0(REC,"-OCC",OCC,"-P",PEG,"-",MET,".POS")
+POS_ffn = paste0(POS_ffn_stub, POS_ffn_sdn)
+
+file.exists(POS_ffn)
+
+X = anal_POS_generic(POS_ffn = POS_ffn, known_coords = get_peg_loc(PEG),POS_FMT = 5)
+
+
+```
+
+
+#===========================================================================
+# PPK-WRPA
+#===========================================================================
+
+```{r}
+
+proc_pos = function(REC, OCC,PEG,MET){
+  
+  
+  OS_ffn_stub = "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/data/FINAL_SOLUTIONS/"
+  
+  POS_ffn_sdn = paste0(REC,"-OCC",OCC,"-P",PEG,"-",MET,".POS")
+  POS_ffn = paste0(POS_ffn_stub, POS_ffn_sdn)
+  
+  file.exists(POS_ffn)
+  
+  X = anal_POS_generic(POS_ffn = POS_ffn, known_coords = get_peg_loc(PEG),POS_FMT = 5)
+}
+
+
+SOLN = proc_pos("CAR", 1, 4, "PPK-WRPA")
+SOLN = proc_pos("TOP", 1, 5, "PPK-WRPA")
+SOLN = proc_pos("JVD", 1, 6, "PPK-WRPA")
+SOLN = proc_pos("EML", 1, 7, "PPK-WRPA")
+SOLN = proc_pos("R10-ROVER", 1, 8, "PPK-WRPA")
+
+SOLN = proc_pos("JVD", 2, 4, "PPK-WRPA")
+SOLN = proc_pos("R10-Rover", 2, 5, "PPK-WRPA")
+SOLN = proc_pos("EML", 2, 6, "PPK-WRPA")
+SOLN = proc_pos("CAR", 2, 7, "PPK-WRPA")
+SOLN = proc_pos("TOP", 2, 8, "PPK-WRPA")
+
+SOLN = proc_pos("R10-Rover", 3, 1, "PPK-WRPA")
+SOLN = proc_pos("EML", 3, 3, "PPK-WRPA")
+SOLN = proc_pos("JVD", 3, 7, "PPK-WRPA")
+
+SOLN = proc_pos("R10-Rover", 5, 4, "PPK-WRPA")
+SOLN = proc_pos("EML", 5, 2, "PPK-WRPA")
+SOLN = proc_pos("JVD", 5, 5, "PPK-WRPA")
+
+SOLN = proc_pos("R10-Rover", 6, 7, "PPK-WRPA")
+SOLN = proc_pos("EML", 6, 8, "PPK-WRPA")
+SOLN = proc_pos("JVD", 6, 3, "PPK-WRPA")
+
+SOLN = proc_pos("JVD", 7, 2, "PPK-WRPA")
+SOLN = proc_pos("R10-Rover", 7, 3, "PPK-WRPA")
+SOLN = proc_pos("EML", 7, 4, "PPK-WRPA")
+
+SOLN = proc_pos("JVD", 8, 1, "PPK-WRPA")
+SOLN = proc_pos("R10-Rover", 8, 2, "PPK-WRPA")
+SOLN = proc_pos("EML", 8, 6, "PPK-WRPA")
+
+SOLN = proc_pos("JVD", 9, 8, "PPK-WRPA")
+SOLN = proc_pos("EML", 9, 1, "PPK-WRPA")
+
+
+```
+# Read Work So Far
+
+```{r}
+#Get the known locations of the Pegs
+
+KnownPegPositions_binary_ffn = "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/data/KnownPegPositions.RDS"
+
+pegloctab = readRDS(KnownPegPositions_binary_ffn) %>% 
+  mutate(PegNum = substr(Peg,6,6)) 
+
+names(pegloctab)[2] = "EASTING_TRUE"
+names(pegloctab)[3] = "NORTHING_TRUE"
+names(pegloctab)[4] = "ELEVATION_TRUE"
+#  
+
+
+#rEAD THE data for the receivers
+
+xl_ffn = "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/data/GNSS_DATA_COLLATED.xlsx"
+xl_page = "RECEIVERS"
+xl_rng = "B3:D13"
+
+
+
+REC_DATA = readxl::read_excel(xl_ffn, sheet = xl_page, range = xl_rng) 
+
+
+
+#rEAD THE FINAL rSULTS tABLE
+
+xl_ffn = "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/data/GNSS_DATA_COLLATED.xlsx"
+xl_page = "FINAL RESULTS"
+xl_rng = "A1:O200"
+
+
+
+D = readxl::read_excel(xl_ffn, sheet = xl_page, range = xl_rng) %>% 
+  left_join(pegloctab, by = c("PEG"="PegNum")) %>% 
+  left_join(REC_DATA, by = c("REC"="CODE"))
+
+
+# plot the PPK from the DNVK
+
+D_DNVK = D %>% 
+  filter(   (MET == "PPK-DNVK" | MET == "PPK-DNVK-TBC") & !is.na(REC) &  !is.na(PEG) & REC != "KIS") %>% 
+  #remove the R10-Rover Entries that were not processed by TBC
+  filter( (MET == "PPK-DNVK" & REC != "R10-Rover" ) | MET == "PPK-DNVK-TBC")  
+
+
+
+```
+
+
+```{r}
+
+g = ggplot(D_DNVK) + geom_bar(aes(PEG,`ACC FLOAT`), stat = "identity", width = .7) + facet_wrap(~RECEIVER)
+
+g = g + geom_errorbar(aes(x = PEG, ymin = `ACC FLOAT` ,ymax = `ACC FLOAT` + `PREC FLOAT`), width = .4)
+
+g = g + labs(x = "Peg Number", y = "Accuracy (m)")
+
+g = g + geom_hline(aes(yintercept = 1), color = "red", linetype = "dashed")
+g = g + geom_hline(aes(yintercept = 0.5), color = "red", linetype = "dotted")
+
+g = g + theme_bw()
+
+g
+```
+
+# Read all the PPP pdf files
+
+```{r}
+
+
+OCC_TBL_ffn = paste0(datadir, "OCC_TBL.RDS")
+
+OCC_TBL = readRDS(OCC_TBL_ffn) 
+
+
+OCC_TBL_filt = OCC_TBL %>% 
+  filter(REC != "KIS" & !(REC == "TOP" & OCC > 2))
+
+PPP_results_dn = paste0(datadir, "FINAL_PPP_SOLUTIONS/")
+
+
+
+for (i in 1:nrow(OCC_TBL_filt)){
+  
+  OCC_UID_curr = OCC_TBL_filt$OCC_UID[i]
+  # i = 1
+  # OCCNUM = 18
+  
+  PPP_dn = paste0(PPP_results_dn, OCC_TBL_filt$REC[i], "-OCC", OCC_TBL_filt$OCC[i], "-PEG", OCC_TBL_filt$PEG[i], "/")
+  
+  dir.exists(PPP_dn)
+  
+  PPP_ffn = list.files(PPP_dn, pattern = "pdf$", full.names = T)
+  
+  PPP_results = read_PPP_file(PPP_ffn) %>% mutate(OCC_UID = OCC_UID_curr)
+  
+  
+  if (i==1){
+    PPP_results_COLL = PPP_results 
+  } else{
+    PPP_results_COLL = PPP_results_COLL %>% bind_rows(PPP_results)
+  }
+  
+  
+}
+
+
+PPP_RESULTS_FINAL = OCC_TBL %>% left_join(PPP_results_COLL, by = "OCC_UID")
+PPP_RESULTS_FINAL_ffn = paste0(datadir, "PPP_RESULTS_FINAL.csv")
+
+write_csv(PPP_RESULTS_FINAL, PPP_RESULTS_FINAL_ffn )
+
+
+
+
+```
+
+
+
+
+
+# FINAL COLLATE
+
+```{r}
+
+MET_vec = c("PPK-WRPA", "PPK-WRPA", "PPK-R10", "PPP")
+REC_vec = c("CAR", "EML", "TOP", "JVD", "R10-Rover")
+OCC_vec = 1:9
+PEG_vec = 1:8
+
+
+
+#rEAD THE FINAL rSULTS tABLE
+
+xl_ffn = "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/data/GNSS_DATA_COLLATED.xlsx"
+xl_page = "FINAL RESULTS"
+xl_rng = "A1:H117"
+
+
+ANL_TBL = readxl::read_excel(xl_ffn, sheet = xl_page, range = xl_rng) %>% 
+  left_join(pegloctab, by = c("PEG"="PegNum")) %>% 
+  left_join(REC_DATA, by = c("REC"="CODE"))
+
+
+if (resave_OCC_TBL){
+  OCC_TBL = ANL_TBL %>% filter(MET == "PPK-DNVK") %>% select(!c(1:3))
+  
+  OCC_TBL_ffn = paste0(datadir, "OCC_TBL.RDS")
+  saveRDS(OCC_TBL, OCC_TBL_ffn)
+  
+} else {
+  
+  OCC_TBL_ffn = paste0(datadir, "OCC_TBL.RDS")
+  OCC_TBL = readRDS(OCC_TBL_ffn)
+  
+  
+  
+}
+
+
+Folder_List = ANL_TBL %>% 
+  filter(MET=="PPK-DNVK" & !is.na(ANL_ID) & !is.na(REC) & REC !="KIS") %>% 
+  mutate(FolderName = paste0(REC,"-OCC", OCC,"-PEG",PEG )) %>% 
+  pull(FolderName)
+
+dn = "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/data/FINAL_PPP_SOLUTIONS/"
+
+for (i in Folder_List){
+  d2create = paste0(dn, i)
+  dir.create(d2create)
+}
+
+
+```
+
 

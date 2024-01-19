@@ -1,0 +1,120 @@
+---
+title: "R Notebook"
+output: html_notebook
+editor_options: 
+  chunk_output_type: console
+---
+
+
+
+```{r}
+#install.packages("pdftools")
+
+ffn = "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/data/FINAL_PPP_SOLUTIONS/JVD-OCC3-PEG7/NZ_field_test_8Nov23_30sec.pdf"
+
+
+read_PPP_file = function(ffn){
+  
+  library(pdftools)
+
+  
+  # read the file
+  txt <- pdf_text(ffn)[1]
+  
+  #parse by line returns
+  txt2 = str_split(txt,"\\n")
+  
+  #get the input file name
+  input_fname = txt2[[1]][3] %>% str_trim()
+  
+  #get the times
+  s_and_e_times_list = txt2[[1]][8] %>% str_extract_all("\\d{4}\\-\\d{2}\\-\\d{2}\\s\\d{2}\\:\\d{2}\\:\\d{2}\\.\\d{2}") 
+  
+  s_time = s_and_e_times_list[[1]][1]
+  e_time = s_and_e_times_list[[1]][2]
+  durn = txt2[[1]][8] %>% str_extract("\\d{2}\\:\\d{2}\\:\\d{2}$") 
+  
+  #grab the line with the ITRF POS
+  Est_pos_ITRF20 = txt2[[1]][23]
+  
+  
+  Est_pos_ITRF20_extr = str_extract(Est_pos_ITRF20, "\\-\\d{2}°\\s\\d{1,2}\\'\\s\\d{1,2}\\.\\d{0,6}\"\\s{1,10}\\d{1,3}°\\s\\d{1,2}\\'\\s\\d{1,2}\\.\\d{0,6}\"\\s{1,15}\\d{1,10}\\.\\d{1,6}")
+  
+  Est_pos_ITRF20_LAT_D = str_extract(Est_pos_ITRF20_extr, "^\\-\\d{1,2}")
+  Est_pos_ITRF20_LAT_M = str_extract(Est_pos_ITRF20_extr, "(?<=^\\-\\d{1,2}\\°\\s)\\d{1,2}")
+  Est_pos_ITRF20_LAT_S = str_extract(Est_pos_ITRF20_extr, "(?<=^\\-\\d{1,2}\\°\\s\\d{1,2}\\'\\s)\\d{2}\\.\\d{1,6}")
+  
+  Est_pos_ITRF20_LON_D = str_extract(Est_pos_ITRF20_extr, "(?<=\"\\s{1,12})\\d{1,3}(?=\\°)")
+  Est_pos_ITRF20_LON_M = str_extract(Est_pos_ITRF20_extr, "(?<=^\\-\\d{1,2}\\°\\s)\\d{1,2}")
+  Est_pos_ITRF20_LON_S = str_extract(Est_pos_ITRF20_extr, "(?<=^\\-\\d{1,2}\\°\\s\\d{1,2}\\'\\s)\\d{2}\\.\\d{1,6}")
+  
+  Est_pos_ITRF20_ELEV = str_extract(Est_pos_ITRF20_extr, "\\d{1,6}\\.\\d{1,6}$")
+  
+  
+  
+  DEG_LL = str_extract_all(Est_pos_ITRF20_extr, "\\-?\\d{1,3}(?=°)")
+  MIN_LL = str_extract_all(Est_pos_ITRF20_extr, "(?<=\\°\\s{1,12})\\d{1,3}(?=\\')")
+  SEC_LL = str_extract_all(Est_pos_ITRF20_extr, "(?<=\\'\\s{1,12})\\d{1,3}\\.\\d{1,6}(?=\")")
+  
+  LAT_DEG = as.numeric(DEG_LL[[1]][1])
+  LON_DEG = as.numeric(DEG_LL[[1]][2])
+  
+  LAT_MIN = as.numeric(MIN_LL[[1]][1])
+  LON_MIN = as.numeric(MIN_LL[[1]][2])
+  
+  LAT_SEC = as.numeric(SEC_LL[[1]][1])
+  LON_SEC = as.numeric(SEC_LL[[1]][2])
+  
+  LAT_DD = sign(LAT_DEG) * (abs(LAT_DEG) + LAT_MIN/60 + LAT_SEC/3600)
+  LON_DD = sign(LON_DEG) * (abs(LON_DEG) + LON_MIN/60 + LON_SEC/3600)
+  ELEV = as.numeric(Est_pos_ITRF20_ELEV)
+  
+  Sigmas_LIST  = txt2[[1]][24] %>% str_extract_all("\\d{1,3}\\.\\d{1,4}(?=\\sm)") 
+  
+  Sigmas_LAT  = as.numeric(Sigmas_LIST[[1]][1])
+  Sigmas_LON  = as.numeric(Sigmas_LIST[[1]][2])
+  Sigmas_ELEV  = as.numeric(Sigmas_LIST[[1]][3])
+  
+  # Now read the UTM Info
+  
+  UTM_N = txt2[[1]][37] %>% str_extract("\\d{1,8}\\.\\d{1,5}") %>% as.numeric()
+  UTM_E = txt2[[1]][38] %>% str_extract("\\d{1,8}\\.\\d{1,5}") %>% as.numeric()
+  
+  # Now read the UTM Info
+  
+  semi_maj = txt2[[1]][32] %>% str_extract("\\d{1,4}\\.\\d{1,4}") %>% as.numeric()
+  semi_min = txt2[[1]][33] %>% str_extract("\\d{1,4}\\.\\d{1,4}") %>% as.numeric()
+  semi_maj_az_txt = txt2[[1]][34]
+  
+  semi_maj_az_deg = semi_maj_az_txt %>% str_extract("\\-?\\d{1,3}(?=°)") %>% as.numeric()
+  semi_maj_az_min = semi_maj_az_txt %>% str_extract("\\d{1,2}(?=\\')") %>% as.numeric()
+  semi_maj_az_sec = semi_maj_az_txt %>% str_extract("\\d{1,2}\\.\\d{1,4}(?=\")") %>% as.numeric()
+  
+  sem_maj_angle = sign(semi_maj_az_deg) *(abs(semi_maj_az_deg) + semi_maj_az_min/60 + semi_maj_az_deg/3600)
+  
+  
+  DOUT = data.frame(
+    Obs_fname = input_fname,
+    TimeStart = s_time,
+    TimeEnd = e_time,
+    Duration = durn,
+    ITRF_LAT = LAT_DD,
+    ITRF_LON = LON_DD,
+    ITRF_ELEV = ELEV,
+    Sigma_LAT = Sigmas_LAT,
+    Sigma_LON = Sigmas_LON,
+    Sigma_ELEV = Sigmas_ELEV,
+    UTM_N = UTM_N,
+    UTM_E = UTM_E,
+    semi_maj = semi_maj,
+    semi_muin = semi_min,
+    sem_maj_angle = sem_maj_angle
+    
+    
+    
+  )
+  
+}
+
+```
+
