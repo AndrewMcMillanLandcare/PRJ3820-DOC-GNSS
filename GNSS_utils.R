@@ -8,6 +8,7 @@ library(readxl)
 library(mapview)
 library(plotly)
 library(ggforce)
+library(pdftools)
 
 # to include this set of utilities in other code:
 #source("C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/Code/R/PRJ3820-DOC-GNSS/GNSS_utils.R")
@@ -1289,6 +1290,16 @@ qual_based_soln = function(POS_data_input = NULL, POS_ffn = NULL, known_coords =
 
 calc_POS_data_stats = function(POS_data, known_coords=NULL){
   
+  testmode = F
+  if (testmode){
+    
+    POS_data_tmp_ffn = paste0(datadir,"TestPosData.RDS")
+    saveRDS(POS_data, POS_data_tmp_ffn)
+    known_coords = get_peg_loc(6)
+    
+  }
+  
+  
   if (!is.null(known_coords)){
     POS_data_all_stats = POS_data %>% 
       summarise(
@@ -1307,6 +1318,9 @@ calc_POS_data_stats = function(POS_data, known_coords=NULL){
         M_ACC = sqrt( (LON_avg-KNOWN_POS_X)^2 + (LAT_avg-KNOWN_POS_Y)^2  ),
         M_PREC = sqrt(DEL_LON_sd^2 + DEL_LAT_sd^2),
         
+        LON_avg_single = mean(LON[Q==5]),
+        LAT_avg_single = mean(LAT[Q==5]),
+        
         LON_avg_fixed = mean(LON[Q==1]),
         LAT_avg_fixed = mean(LAT[Q==1]),
         
@@ -1318,14 +1332,20 @@ calc_POS_data_stats = function(POS_data, known_coords=NULL){
         
         M_ACC_all = sqrt( (LON_avg-KNOWN_POS_X)^2 + (LAT_avg-KNOWN_POS_Y)^2  ),
         M_PREC_all = M_PREC,
+        M_ACC_single = sqrt( (LON_avg_single - KNOWN_POS_X)^2 + (LAT_avg_single - KNOWN_POS_Y)^2),
+        M_PREC_single =  sqrt((   (sd(DEL_LON[Q==5]))^2 + (sd(DEL_LAT[Q==5]))^2)),
         M_ACC_fixed = sqrt( (LON_avg_fixed - KNOWN_POS_X)^2 + (LAT_avg_fixed - KNOWN_POS_Y)^2),
         M_PREC_fixed =  sqrt((   (sd(DEL_LON[Q==1]))^2 + (sd(DEL_LAT[Q==1]))^2)),
         M_ACC_float = sqrt( (LON_avg_float - KNOWN_POS_X)^2 + (LAT_avg_float - KNOWN_POS_Y)^2),
         M_PREC_float =  sqrt((   (sd(DEL_LON[Q==2]))^2 + (sd(DEL_LAT[Q==2]))^2)),
         M_ACC_fixed_or_float = sqrt( (LON_avg_fixed_or_float - KNOWN_POS_X)^2 + (LAT_avg_fixed_or_float - KNOWN_POS_Y)^2),
         M_PREC_fixed_or_float =  sqrt((   (sd(DEL_LON[Q==1|Q==2]))^2 + (sd(DEL_LAT[Q==1|Q==2]))^2)),
+        PERCENT_SINGLE = 100 * length(which(Q==5))/length(Q),
+        PERCENT_FLOAT = 100 * length(which(Q==2))/length(Q),
         PERCENT_FIXED = 100 * length(which(Q==1))/length(Q),
-        PERCENT_FLOAT = 100 * length(which(Q==2))/length(Q)
+        TM_STT = min(UTC_TIME_PX),
+        TM_END = max(UTC_TIME_PX),
+        OCC_TM = (as.numeric(TM_END) - as.numeric(TM_STT))/3600
         
       )
     
@@ -1578,13 +1598,15 @@ anal_POS_generic = function(POS_ffn, known_coords = NULL, POS_FMT = NULL){
   print(paste("LAT = ",formatC(SOLN_QBASED_df$LAT_avg,digits = 11)))
   print(paste("LON = ",formatC(SOLN_QBASED_df$LON_avg,digits = 11)))
   print(paste("ELEV = ",formatC(SOLN_QBASED_df$ELE_avg,digits = 6)))
-  
+  print(paste0("Start : ", SOLN_QBASED_df$TM_STT, " | End : ", SOLN_QBASED_df$TM_END, " | Occ Time (hours) :", SOLN_QBASED_df$OCC_TM))
   print(paste("ACCURACY +/- PREC (ALL)            = ",formatC(SOLN_QBASED_df$M_ACC_all,digits = 4), " +/- ", formatC(SOLN_QBASED_df$M_PREC_all,digits = 4), "m"))
+  print(paste("ACCURACY +/- PREC (SINGLE)          = ",formatC(SOLN_QBASED_df$M_ACC_single,digits = 4), " +/- ", formatC(SOLN_QBASED_df$M_PREC_single,digits = 4), "m"))
   print(paste("ACCURACY +/- PREC (FLOAT)          = ",formatC(SOLN_QBASED_df$M_ACC_float,digits = 4), " +/- ", formatC(SOLN_QBASED_df$M_PREC_float,digits = 4), "m"))
   print(paste("ACCURACY +/- PREC (FIXED)          = ",formatC(SOLN_QBASED_df$M_ACC_fixed,digits = 4), " +/- ", formatC(SOLN_QBASED_df$M_PREC_fixed,digits = 4), "m"))
   print(paste("ACCURACY +/- PREC (FIXED or FLOAT) = ",formatC(SOLN_QBASED_df$M_ACC_fixed_or_float,digits = 4), " +/- ", formatC(SOLN_QBASED_df$M_PREC_fixed_or_float,digits = 4), "m"))
   
   print(paste("PREC = ",formatC(SOLN_QBASED_df$M_PREC,digits = 4)))
+  print(paste("PERCENT SINGLE = ",formatC(SOLN_QBASED_df$PERCENT_SINGLE,digits = 4),"%"))
   print(paste("PERCENT FIXED = ",formatC(SOLN_QBASED_df$PERCENT_FIXED,digits = 4),"%"))
   print(paste("PERCENT FLOAT = ",formatC(SOLN_QBASED_df$PERCENT_FLOAT,digits = 4),"%"))
   
@@ -1646,14 +1668,36 @@ proc_emlid_pos = function(eml_llh_pos_ffn, pegnum){
   
 }
 
+
+#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+### read_PPP_file
+#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+proc_pos = function(REC, OCC,PEG,MET){
+  
+  
+  POS_ffn_stub = "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/data/FINAL_SOLUTIONS/"
+  
+  POS_ffn_sdn = paste0(REC,"-OCC",OCC,"-P",PEG,"-",MET,".POS")
+  POS_ffn = paste0(POS_ffn_stub, POS_ffn_sdn)
+  
+  file.exists(POS_ffn)
+  
+  X = anal_POS_generic(POS_ffn = POS_ffn, known_coords = get_peg_loc(PEG),POS_FMT = 5)
+}
+
+
+
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 ### read_PPP_file
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 read_PPP_file = function(ffn){
   
-  library(pdftools)
-  
+ testmode = F
+  if (testmode){
+    ffn = "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/data/FINAL_PPP_SOLUTIONS/TOP-OCC1-PEG5/bal-3110_edited.pdf"
+  }
   
   # read the file
   txt <- pdf_text(ffn)[1]
@@ -1669,25 +1713,31 @@ read_PPP_file = function(ffn){
   
   s_time = s_and_e_times_list[[1]][1]
   e_time = s_and_e_times_list[[1]][2]
-  durn = txt2[[1]][8] %>% str_extract("\\d{2}\\:\\d{2}\\:\\d{2}$") 
+  
+  durn_txt = txt2[[1]][8] %>% str_extract("\\d{1,2}\\:\\d{2}\\:\\d{2}$") 
+  durn_h = durn_txt %>% str_extract("^\\d{1,2}") %>% as.numeric()
+  durn_m = durn_txt %>% str_extract("(?<=\\:)\\d{1,2}(?=\\:)") %>% as.numeric()
+  durn_s = durn_txt %>% str_extract("(?<=\\:\\d{1,2}\\:)\\d{1,2}") %>% as.numeric()
+  durn = durn_h + durn_m/60 + durn_s/3600
+  
   
   #grab the line with the ITRF POS
   Est_pos_ITRF20 = txt2[[1]][23]
   
   
   Est_pos_ITRF20_extr = str_extract(Est_pos_ITRF20, "\\-\\d{2}°\\s\\d{1,2}\\'\\s\\d{1,2}\\.\\d{0,6}\"\\s{1,10}\\d{1,3}°\\s\\d{1,2}\\'\\s\\d{1,2}\\.\\d{0,6}\"\\s{1,15}\\d{1,10}\\.\\d{1,6}")
-  
-  Est_pos_ITRF20_LAT_D = str_extract(Est_pos_ITRF20_extr, "^\\-\\d{1,2}")
-  Est_pos_ITRF20_LAT_M = str_extract(Est_pos_ITRF20_extr, "(?<=^\\-\\d{1,2}\\°\\s)\\d{1,2}")
-  Est_pos_ITRF20_LAT_S = str_extract(Est_pos_ITRF20_extr, "(?<=^\\-\\d{1,2}\\°\\s\\d{1,2}\\'\\s)\\d{2}\\.\\d{1,6}")
-  
-  Est_pos_ITRF20_LON_D = str_extract(Est_pos_ITRF20_extr, "(?<=\"\\s{1,12})\\d{1,3}(?=\\°)")
-  Est_pos_ITRF20_LON_M = str_extract(Est_pos_ITRF20_extr, "(?<=^\\-\\d{1,2}\\°\\s)\\d{1,2}")
-  Est_pos_ITRF20_LON_S = str_extract(Est_pos_ITRF20_extr, "(?<=^\\-\\d{1,2}\\°\\s\\d{1,2}\\'\\s)\\d{2}\\.\\d{1,6}")
-  
-  Est_pos_ITRF20_ELEV = str_extract(Est_pos_ITRF20_extr, "\\d{1,6}\\.\\d{1,6}$")
-  
-  
+  # 
+  # Est_pos_ITRF20_LAT_D = str_extract(Est_pos_ITRF20_extr, "^\\-\\d{1,2}")
+  # Est_pos_ITRF20_LAT_M = str_extract(Est_pos_ITRF20_extr, "(?<=^\\-\\d{1,2}\\°\\s)\\d{1,2}")
+  # Est_pos_ITRF20_LAT_S = str_extract(Est_pos_ITRF20_extr, "(?<=^\\-\\d{1,2}\\°\\s\\d{1,2}\\'\\s)\\d{2}\\.\\d{1,6}")
+  # 
+  # Est_pos_ITRF20_LON_D = str_extract(Est_pos_ITRF20_extr, "(?<=\"\\s{1,12})\\d{1,3}(?=\\°)")
+  # Est_pos_ITRF20_LON_M = str_extract(Est_pos_ITRF20_extr, "(?<=^\\-\\d{1,2}\\°\\s)\\d{1,2}")
+  # Est_pos_ITRF20_LON_S = str_extract(Est_pos_ITRF20_extr, "(?<=^\\-\\d{1,2}\\°\\s\\d{1,2}\\'\\s)\\d{2}\\.\\d{1,6}")
+  # 
+  # Est_pos_ITRF20_ELEV = str_extract(Est_pos_ITRF20_extr, "\\d{1,6}\\.\\d{1,6}$")
+  # 
+  # 
   
   DEG_LL = str_extract_all(Est_pos_ITRF20_extr, "\\-?\\d{1,3}(?=°)")
   MIN_LL = str_extract_all(Est_pos_ITRF20_extr, "(?<=\\°\\s{1,12})\\d{1,3}(?=\\')")
@@ -1714,14 +1764,24 @@ read_PPP_file = function(ffn){
   
   # Now read the UTM Info
   
-  UTM_N = txt2[[1]][37] %>% str_extract("\\d{1,8}\\.\\d{1,5}") %>% as.numeric()
-  UTM_E = txt2[[1]][38] %>% str_extract("\\d{1,8}\\.\\d{1,5}") %>% as.numeric()
+  UTM_N_line_num = which(str_detect(txt2[[1]], "\\sm\\s\\(N\\)"))
+  UTM_E_line_num = which(str_detect(txt2[[1]], "\\sm\\s\\(E\\)"))
+  
+  
+  UTM_N = txt2[[1]][UTM_N_line_num] %>% str_extract("\\d{1,8}\\.\\d{1,5}") %>% as.numeric()
+  UTM_E = txt2[[1]][UTM_E_line_num] %>% str_extract("\\d{1,8}\\.\\d{1,5}") %>% as.numeric()
   
   # Now read the UTM Info
   
-  semi_maj = txt2[[1]][32] %>% str_extract("\\d{1,4}\\.\\d{1,4}") %>% as.numeric()
-  semi_min = txt2[[1]][33] %>% str_extract("\\d{1,4}\\.\\d{1,4}") %>% as.numeric()
-  semi_maj_az_txt = txt2[[1]][34]
+  
+  semi_maj_line_num = which(str_detect(txt2[[1]], "semi-major\\:"))
+  semi_min_line_num = which(str_detect(txt2[[1]], "semi-minor"))
+  semi_maj_az_line_num = which(str_detect(txt2[[1]], "semi-major azimuth"))
+  
+  
+  semi_maj = txt2[[1]][semi_maj_line_num] %>% str_extract("\\d{1,4}\\.\\d{1,4}") %>% as.numeric()
+  semi_min = txt2[[1]][semi_min_line_num] %>% str_extract("\\d{1,4}\\.\\d{1,4}") %>% as.numeric()
+  semi_maj_az_txt = txt2[[1]][semi_maj_az_line_num]
   
   semi_maj_az_deg = semi_maj_az_txt %>% str_extract("\\-?\\d{1,3}(?=°)") %>% as.numeric()
   semi_maj_az_min = semi_maj_az_txt %>% str_extract("\\d{1,2}(?=\\')") %>% as.numeric()
@@ -1752,3 +1812,74 @@ read_PPP_file = function(ffn){
   )
   
 }
+
+#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+### collate_ppk
+#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+# this functions reads all of the POS files that were created by manual 
+# running of each of the raw rinex static observation files in Emlid Studio
+
+# it will create a one line summary file 
+
+
+
+collate_ppk = function(MET, OCC_TBL_ffn){
+  
+  
+  #read the OCC_TBL - the list of all the occupations
+  OCC_TBL = readRDS(OCC_TBL_ffn) 
+  
+  #filter the table to exclude the KIS receiver and the TOPCONN from Occupations 3-9
+  OCC_TBL_filt = OCC_TBL %>% 
+    filter(REC != "KIS" & !(REC == "TOP" & OCC > 2)  )
+  
+  
+  #also if the Method is PPK-R10 and the Occupation = 3 then remove since the R10 Base station 
+  #was not deployed overnight during OCC3
+  
+  if (MET == "PPK-R10"){
+    OCC_TBL_filt = OCC_TBL_filt %>% filter(OCC != 3)
+    
+    
+  }
+  
+  for (i in 1:nrow(OCC_TBL_filt)){
+    
+    
+    cPOS_dn = "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/data/FINAL_SOLUTIONS/"
+    cPOS_fn = OCC_TBL_filt$POS_ffn[i]
+    cPOS_ffn = paste0(cPOS_dn, cPOS_fn)
+    file.exists(cPOS_ffn)
+    
+    cREC = OCC_TBL_filt$REC[i]
+    cOCC = OCC_TBL_filt$OCC[i]
+    cPEG = OCC_TBL_filt$PEG[i]
+    cMET = MET
+    
+    print("=====================================================================================")
+    print("=====================================================================================")
+    print(paste("*** In collate_ppk - : MET =", cMET," | REC =", cREC, "| OCC =", cOCC, "| PEG =", cPEG))
+    print("=====================================================================================")
+    print("=====================================================================================")
+    
+    if (file.exists(cPOS_ffn)){
+      
+      SOLN = proc_pos(cREC, cOCC, cPEG, cMET)
+      
+      SOLN_df = as.data.frame(t(SOLN)) %>% 
+        mutate(POS_fn = cPOS_fn)
+      
+      
+      if (i==1){
+        SOLN_COLLATED = SOLN_df 
+      } else {
+        SOLN_COLLATED = SOLN_COLLATED %>% bind_rows(SOLN_df)
+      } 
+      
+    }
+  }
+  return(SOLN_COLLATED)
+}
+
+

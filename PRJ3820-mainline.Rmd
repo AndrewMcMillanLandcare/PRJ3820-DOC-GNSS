@@ -5,9 +5,6 @@ output: html_notebook
 editor_options: 
   chunk_output_type: console
 chunk_output_type: console
-chunk_output_type: console
-chunk_output_type: console
-chunk_output_type: console
 ---
 
 
@@ -63,7 +60,9 @@ util_script = paste0("C:/Users/McMillanAn/OneDrive - MWLR/Code/R/utils/", "mcm_s
 source(util_script)
 
 
+cbbPalette <- c("#D55E00", "#56B4E9", "#CC79A7", "#009E73", "#000000", "#E69F00", "#56B4E9")
 
+pegPalette <- c("#999999", "#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7")
 
 
 ```
@@ -2856,19 +2855,45 @@ X = anal_POS_generic(POS_ffn = POS_ffn, known_coords = get_peg_loc(PEG),POS_FMT 
 
 ```{r}
 
-proc_pos = function(REC, OCC,PEG,MET){
-  
-  
-  OS_ffn_stub = "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/data/FINAL_SOLUTIONS/"
-  
-  POS_ffn_sdn = paste0(REC,"-OCC",OCC,"-P",PEG,"-",MET,".POS")
-  POS_ffn = paste0(POS_ffn_stub, POS_ffn_sdn)
-  
-  file.exists(POS_ffn)
-  
-  X = anal_POS_generic(POS_ffn = POS_ffn, known_coords = get_peg_loc(PEG),POS_FMT = 5)
-}
 
+#=================================================
+
+SOLN = proc_pos("CAR", 1, 4, "PPK-DNVK")
+SOLN = proc_pos("TOP", 1, 5, "PPK-DNVK")
+SOLN = proc_pos("JVD", 1, 6, "PPK-DNVK")
+SOLN = proc_pos("EML", 1, 7, "PPK-DNVK")
+SOLN = proc_pos("R10-ROVER", 1, 8, "PPK-DNVK")
+
+SOLN = proc_pos("JVD", 2, 4, "PPK-DNVK")
+SOLN = proc_pos("R10-ROVER", 2, 5, "PPK-DNVK")
+SOLN = proc_pos("EML", 2, 6, "PPK-DNVK")
+SOLN = proc_pos("CAR", 2, 7, "PPK-DNVK")
+SOLN = proc_pos("TOP", 2, 8, "PPK-DNVK")
+
+SOLN = proc_pos("R10-ROVER", 3, 1, "PPK-DNVK")
+SOLN = proc_pos("EML", 3, 3, "PPK-DNVK")
+SOLN = proc_pos("JVD", 3, 7, "PPK-DNVK")
+
+SOLN = proc_pos("R10-ROVER", 5, 4, "PPK-DNVK")
+SOLN = proc_pos("EML", 5, 2, "PPK-DNVK")
+SOLN = proc_pos("JVD", 5, 5, "PPK-DNVK")
+
+SOLN = proc_pos("R10-ROVER", 6, 7, "PPK-DNVK")
+SOLN = proc_pos("EML", 6, 8, "PPK-DNVK")
+SOLN = proc_pos("JVD", 6, 3, "PPK-DNVK")
+
+SOLN = proc_pos("JVD", 7, 2, "PPK-DNVK")
+SOLN = proc_pos("R10-ROVER", 7, 3, "PPK-DNVK")
+SOLN = proc_pos("EML", 7, 4, "PPK-DNVK")
+
+SOLN = proc_pos("JVD", 8, 1, "PPK-DNVK")
+SOLN = proc_pos("R10-ROVER", 8, 2, "PPK-DNVK")
+SOLN = proc_pos("EML", 8, 6, "PPK-DNVK")
+
+SOLN = proc_pos("JVD", 9, 8, "PPK-DNVK")
+SOLN = proc_pos("EML", 9, 1, "PPK-DNVK")
+
+#=================================================
 
 SOLN = proc_pos("CAR", 1, 4, "PPK-WRPA")
 SOLN = proc_pos("TOP", 1, 5, "PPK-WRPA")
@@ -2877,35 +2902,70 @@ SOLN = proc_pos("EML", 1, 7, "PPK-WRPA")
 SOLN = proc_pos("R10-ROVER", 1, 8, "PPK-WRPA")
 
 SOLN = proc_pos("JVD", 2, 4, "PPK-WRPA")
-SOLN = proc_pos("R10-Rover", 2, 5, "PPK-WRPA")
+SOLN = proc_pos("R10-ROVER", 2, 5, "PPK-WRPA")
 SOLN = proc_pos("EML", 2, 6, "PPK-WRPA")
 SOLN = proc_pos("CAR", 2, 7, "PPK-WRPA")
 SOLN = proc_pos("TOP", 2, 8, "PPK-WRPA")
 
-SOLN = proc_pos("R10-Rover", 3, 1, "PPK-WRPA")
+SOLN = proc_pos("R10-ROVER", 3, 1, "PPK-WRPA")
 SOLN = proc_pos("EML", 3, 3, "PPK-WRPA")
 SOLN = proc_pos("JVD", 3, 7, "PPK-WRPA")
 
-SOLN = proc_pos("R10-Rover", 5, 4, "PPK-WRPA")
+SOLN = proc_pos("R10-ROVER", 5, 4, "PPK-WRPA")
 SOLN = proc_pos("EML", 5, 2, "PPK-WRPA")
 SOLN = proc_pos("JVD", 5, 5, "PPK-WRPA")
 
-SOLN = proc_pos("R10-Rover", 6, 7, "PPK-WRPA")
+SOLN = proc_pos("R10-ROVER", 6, 7, "PPK-WRPA")
 SOLN = proc_pos("EML", 6, 8, "PPK-WRPA")
 SOLN = proc_pos("JVD", 6, 3, "PPK-WRPA")
 
 SOLN = proc_pos("JVD", 7, 2, "PPK-WRPA")
-SOLN = proc_pos("R10-Rover", 7, 3, "PPK-WRPA")
+SOLN = proc_pos("R10-ROVER", 7, 3, "PPK-WRPA")
 SOLN = proc_pos("EML", 7, 4, "PPK-WRPA")
 
 SOLN = proc_pos("JVD", 8, 1, "PPK-WRPA")
-SOLN = proc_pos("R10-Rover", 8, 2, "PPK-WRPA")
+SOLN = proc_pos("R10-ROVER", 8, 2, "PPK-WRPA")
 SOLN = proc_pos("EML", 8, 6, "PPK-WRPA")
 
 SOLN = proc_pos("JVD", 9, 8, "PPK-WRPA")
 SOLN = proc_pos("EML", 9, 1, "PPK-WRPA")
 
+#=================================================
 
+SOLN = proc_pos("CAR", 1, 4, "PPK-R10")
+SOLN = proc_pos("TOP", 1, 5, "PPK-R10")
+SOLN = proc_pos("JVD", 1, 6, "PPK-R10")
+SOLN = proc_pos("EML", 1, 7, "PPK-R10")
+SOLN = proc_pos("R10-ROVER", 1, 8, "PPK-R10")
+
+SOLN = proc_pos("JVD", 2, 4, "PPK-R10")
+SOLN = proc_pos("R10-ROVER", 2, 5, "PPK-R10")
+SOLN = proc_pos("EML", 2, 6, "PPK-R10")
+SOLN = proc_pos("CAR", 2, 7, "PPK-R10")
+SOLN = proc_pos("TOP", 2, 8, "PPK-R10")
+
+SOLN = proc_pos("R10-ROVER", 3, 1, "PPK-R10")
+SOLN = proc_pos("EML", 3, 3, "PPK-R10")
+SOLN = proc_pos("JVD", 3, 7, "PPK-R10")
+
+SOLN = proc_pos("R10-ROVER", 5, 4, "PPK-R10")
+SOLN = proc_pos("EML", 5, 2, "PPK-R10")
+SOLN = proc_pos("JVD", 5, 5, "PPK-R10")
+
+SOLN = proc_pos("R10-ROVER", 6, 7, "PPK-R10")
+SOLN = proc_pos("EML", 6, 8, "PPK-R10")
+SOLN = proc_pos("JVD", 6, 3, "PPK-R10")
+
+SOLN = proc_pos("JVD", 7, 2, "PPK-R10")
+SOLN = proc_pos("R10-ROVER", 7, 3, "PPK-R10")
+SOLN = proc_pos("EML", 7, 4, "PPK-R10")
+
+SOLN = proc_pos("JVD", 8, 1, "PPK-R10")
+SOLN = proc_pos("R10-ROVER", 8, 2, "PPK-R10")
+SOLN = proc_pos("EML", 8, 6, "PPK-R10")
+
+SOLN = proc_pos("JVD", 9, 8, "PPK-R10")
+SOLN = proc_pos("EML", 9, 1, "PPK-R10")
 ```
 # Read Work So Far
 
@@ -2976,25 +3036,599 @@ g = g + theme_bw()
 g
 ```
 
-# Read all the PPP pdf files
+# Do a final re-collation of all the PPK *.POS files, outputting a fuller data set
 
 ```{r}
 
-
+#specify the location of the OCC_TBL
 OCC_TBL_ffn = paste0(datadir, "OCC_TBL.RDS")
 
+#read the OCC_TBL - the list of all the occupations
 OCC_TBL = readRDS(OCC_TBL_ffn) 
 
 
+recollate=T
+if (recollate){
+  
+  PPK_DNVK_COLLATED_TMP = collate_ppk(MET="PPK-DNVK", OCC_TBL_ffn) 
+  PPK_DNVK_COLLATED = OCC_TBL %>% 
+    left_join(PPK_DNVK_COLLATED_TMP, by = c("POS_ffn"="POS_fn" )) %>% 
+    mutate(MET = "PPK-DNVK")
+  
+  write_csv(PPK_DNVK_COLLATED, paste0(datadir, "PPK_DNVK_COLL.csv"))
+  
+  PPK_WRPA_COLLATED_TMP = collate_ppk(MET="PPK-WRPA", OCC_TBL_ffn) 
+  PPK_WRPA_COLLATED = OCC_TBL %>% 
+    left_join(PPK_WRPA_COLLATED_TMP, by = c("POS_ffn"="POS_fn" )) %>% 
+    mutate(MET = "PPK-WRPA")
+  
+  write_csv(PPK_WRPA_COLLATED, paste0(datadir, "PPK_WRPA_COLL.csv"))
+  
+  PPK_R10_COLLATED_TMP = collate_ppk(MET="PPK-R10", OCC_TBL_ffn) 
+  PPK_R10_COLLATED = OCC_TBL %>% 
+    left_join(PPK_R10_COLLATED_TMP, by = c("POS_ffn"="POS_fn" )) %>% 
+    mutate(MET = "PPK-R10")
+  
+  write_csv(PPK_R10_COLLATED, paste0(datadir, "PPK_R10_COLL.csv"))
+  
+  PPK_ALL_COLLATED = PPK_DNVK_COLLATED %>% 
+    bind_rows(PPK_WRPA_COLLATED) %>% 
+    bind_rows(PPK_R10_COLLATED)
+  
+  write_csv(PPK_ALL_COLLATED, paste0(datadir, "PPK_ALL_COLL.csv"))
+  
+} else {
+  
+  PPK_DNVK_COLLATED = read_csv(paste0(datadir, "PPK_DNVK_COLL.csv"))
+  PPK_WRPA_COLLATED = read_csv(paste0(datadir, "PPK_WRPA_COLL.csv"))
+  PPK_R10_COLLATED = read_csv(paste0(datadir, "PPK_R10_COLL.csv"))
+  
+  PPK_ALL_COLLATED = read_csv(paste0(datadir, "PPK_ALL_COLL.csv"))
+  
+  
+  
+}
+
+
+
+
+
+
+
+```
+
+#=====================================
+#   -----------------------------------------------------------------
+# ANALYSE THE FINAL COLLATED DATA 
+#   -----------------------------------------------------------------
+#=====================================
+
+
+```{r}
+
+PPK_ALL_COLLATED = read_csv(paste0(datadir, "PPK_ALL_COLL.csv"))
+
+cMET = "PPK-DNVK"
+PPK_ALL_COLLATED_DNVK = PPK_ALL_COLLATED %>% 
+  filter(
+    MET==cMET & 
+      REC != "KIS" & 
+      !(REC=="TOP" & OCC==3) &
+      !(MET=="PPK-R10" & OCC==3)) %>% 
+  mutate(
+    PEG_LAB = paste0("Peg ", PEG)
+  )
+
+cMET = "PPK-WRPA"
+PPK_ALL_COLLATED_WRPA = PPK_ALL_COLLATED %>% 
+  filter(
+    MET==cMET & 
+      REC != "KIS" & 
+      !(REC=="TOP" & OCC==3) &
+      !(MET=="PPK-R10" & OCC==3)) %>% 
+  mutate(
+    PEG_LAB = paste0("Peg ", PEG)
+  )
+
+
+cMET = "PPK-R10"
+PPK_ALL_COLLATED_R10 = PPK_ALL_COLLATED %>% 
+  filter(
+    MET==cMET & 
+      REC != "KIS" & 
+      !(REC=="TOP" & OCC==3) &
+      !(MET=="PPK-R10" & OCC==3)) %>% 
+  mutate(
+    PEG_LAB = paste0("Peg ", PEG)
+  )
+
+
+```
+
+# ~~~~~~~~~~~~~~~~ #
+# Figure 4001 -  PPK-DNVK Accuracy-vs-Rcvr-by-Peg
+# ~~~~~~~~~~~~~~~~ #
+
+```{r}
+
+fignum = 4001
+figdesc = "PPK-DNVK-Accuracy-split by REC"
+figfmt = "png"
+fig_ffn = paste0(plotdir, fignum,"-", figdesc, ".", figfmt)
+
+alp = .3
+
+axlim = 2.01
+
+g = ggplot(PPK_ALL_COLLATED_DNVK) 
+g = g + lims(x = c(-axlim,axlim), y = c(-axlim,axlim))
+g = g + geom_hline(aes(yintercept = 0), color = "red", linetype = "dashed", alpha = alp)
+g = g + geom_vline(aes(xintercept = 0), color = "red", linetype = "dashed", alpha = alp)
+g = g + geom_circle(aes(x0 = 0, y0=0, r=1), color = "red", linetype = "dashed", alpha = alp)
+g = g + geom_circle(aes(x0 = 0, y0=0, r=0.5), color = "red", linetype = "dashed", alpha = alp)
+
+g = g+ geom_point(aes(DEL_LON_avg , DEL_LAT_avg , color = RECEIVER), size = 2) + facet_wrap(~PEG_LAB, nrow = 3)
+g = g + labs(x = expression(paste(Delta," Easting (m)")),y = expression(paste(Delta," Northing (m)")))
+
+g = g + scale_color_manual(values = cbbPalette)
+g = g + guides(color=guide_legend(title="GNSS Receiver"))
+
+g = g +coord_fixed(ratio=1)
+g = g + theme_bw() +
+  theme(
+    strip.background =element_rect(fill="white"),
+    axis.title =  element_text(size = 12),
+    legend.position = c(0.87,0.13))
+# axis.title = element_text(size = 16))
+g
+
+WD = 28
+HT = 8/18*28
+
+specdim = F
+
+
+ggsave(filename = fig_ffn, plot = g, width = WD, height = HT, units = "cm", bg = "white")
+
+if (specdim){
+  ggsave(filename = fig_ffn, plot = g, width = WD, height = HT, units = "cm", bg = "white")
+} else {
+  ggsave(filename = fig_ffn, plot = g,  units = "cm", bg = "white")
+}
+
+
+```
+
+# ~~~~~~~~~~~~~~~~ #
+# Figure 4002 -  PPK-DNVK Accuracy-at-each-peg-by-receiver
+# ~~~~~~~~~~~~~~~~ #
+
+```{r}
+
+fignum = 4002
+figdesc = "PPK-DNVK Accuracy-at-each-peg-by-receiver"
+figfmt = "png"
+fig_ffn = paste0(plotdir, fignum,"-", figdesc, ".", figfmt)
+
+alp = .3
+
+axlim = 2.01
+
+g = ggplot(PPK_ALL_COLLATED_MET) 
+g = g + lims(x = c(-axlim,axlim), y = c(-axlim,axlim))
+g = g + geom_hline(aes(yintercept = 0), color = "red", linetype = "dashed", alpha = alp)
+g = g + geom_vline(aes(xintercept = 0), color = "red", linetype = "dashed", alpha = alp)
+g = g + geom_circle(aes(x0 = 0, y0=0, r=1), color = "red", linetype = "dashed", alpha = alp)
+g = g + geom_circle(aes(x0 = 0, y0=0, r=0.5), color = "red", linetype = "dashed", alpha = alp)
+
+
+g = g + geom_circle(aes(x0 = DEL_LON_avg, y0=DEL_LAT_avg, r=M_PREC, fill = PEG_LAB), linetype=0 , alpha = .5)
+
+
+g = g+ geom_point(aes(DEL_LON_avg , DEL_LAT_avg, color = PEG_LAB ), size = 2) + facet_wrap(~RECEIVER, nrow = 2)
+g = g + labs(x = expression(paste(Delta," Easting (m)")),y = expression(paste(Delta," Northing (m)")))
+
+g = g + scale_color_manual(values = pegPalette)
+g = g + scale_fill_manual(values = pegPalette)
+
+
+g = g + guides(color=guide_legend("Peg"), fill = "none")
+
+g = g +coord_fixed(ratio=1)
+g = g + theme_bw() +
+  theme(
+    strip.background =element_rect(fill="white"),
+    axis.title =  element_text(size = 12),
+    legend.position = "bottom")
+# axis.title = element_text(size = 16))
+g
+
+WD = 28
+HT = 8/18*28
+
+specdim = F
+
+
+ggsave(filename = fig_ffn, plot = g, width = WD, height = HT, units = "cm", bg = "white")
+
+if (specdim){
+  ggsave(filename = fig_ffn, plot = g, width = WD, height = HT, units = "cm", bg = "white")
+} else {
+  ggsave(filename = fig_ffn, plot = g,  units = "cm", bg = "white")
+}
+
+
+```
+
+# ~~~~~~~~~~~~~~~~ #
+# Figure 4003 -  PPK-DNVK-Accuracy-for-each-occupation-by-receiver
+# ~~~~~~~~~~~~~~~~ #
+
+```{r}
+
+fignum = 4003
+figdesc = "PPK-DNVK-Accuracy-for-each-occupation-by-receiver"
+figfmt = "png"
+fig_ffn = paste0(plotdir, fignum,"-", figdesc, ".", figfmt)
+
+alp = .3
+
+axlim = 2.01
+
+g = ggplot(PPK_ALL_COLLATED_DNVK) 
+g = g + lims(x = c(-axlim,axlim), y = c(-axlim,axlim))
+g = g + geom_hline(aes(yintercept = 0), color = "red", linetype = "dashed", alpha = alp)
+g = g + geom_vline(aes(xintercept = 0), color = "red", linetype = "dashed", alpha = alp)
+g = g + geom_circle(aes(x0 = 0, y0=0, r=1), color = "red", linetype = "dashed", alpha = alp)
+g = g + geom_circle(aes(x0 = 0, y0=0, r=0.5), color = "red", linetype = "dashed", alpha = alp)
+
+
+g = g + geom_circle(aes(x0 = DEL_LON_avg, y0=DEL_LAT_avg, r=M_PREC, fill = as.character(OCC)), linetype=0 , alpha = .5)
+
+
+g = g+ geom_point(aes(DEL_LON_avg , DEL_LAT_avg, color = as.character(OCC) ), size = 2) + facet_wrap(~RECEIVER, nrow = 2)
+g = g + labs(x = expression(paste(Delta," Easting (m)")),y = expression(paste(Delta," Northing (m)")))
+
+g = g + scale_color_manual(values = pegPalette)
+g = g + scale_fill_manual(values = pegPalette)
+
+
+g = g + guides(color=guide_legend("Occupation \nnumber"), fill = "none")
+
+g = g +coord_fixed(ratio=1)
+g = g + theme_bw() +
+  theme(
+    strip.background =element_rect(fill="white"),
+    axis.title =  element_text(size = 12),
+    legend.position = "bottom")
+# axis.title = element_text(size = 16))
+g
+
+WD = 28
+HT = 8/18*28
+
+specdim = F
+
+
+ggsave(filename = fig_ffn, plot = g, width = WD, height = HT, units = "cm", bg = "white")
+
+if (specdim){
+  ggsave(filename = fig_ffn, plot = g, width = WD, height = HT, units = "cm", bg = "white")
+} else {
+  ggsave(filename = fig_ffn, plot = g,  units = "cm", bg = "white")
+}
+
+
+```
+
+
+# ~~~~~~~~~~~~~~~~ #
+# Figure 5001 -  PPK-WRPA Accuracy-vs-Rcvr-by-Peg
+# ~~~~~~~~~~~~~~~~ #
+
+```{r}
+
+fignum = 5001
+figdesc = "PPK-WRPA-Accuracy-split by REC"
+figfmt = "png"
+fig_ffn = paste0(plotdir, fignum,"-", figdesc, ".", figfmt)
+
+alp = .3
+
+axlim = 2.01
+
+g = ggplot(PPK_ALL_COLLATED_WRPA) 
+g = g + lims(x = c(-axlim,axlim), y = c(-axlim,axlim))
+g = g + geom_hline(aes(yintercept = 0), color = "red", linetype = "dashed", alpha = alp)
+g = g + geom_vline(aes(xintercept = 0), color = "red", linetype = "dashed", alpha = alp)
+g = g + geom_circle(aes(x0 = 0, y0=0, r=1), color = "red", linetype = "dashed", alpha = alp)
+g = g + geom_circle(aes(x0 = 0, y0=0, r=0.5), color = "red", linetype = "dashed", alpha = alp)
+
+g = g+ geom_point(aes(DEL_LON_avg , DEL_LAT_avg , color = RECEIVER), size = 2) + facet_wrap(~PEG_LAB, nrow = 3)
+g = g + labs(x = expression(paste(Delta," Easting (m)")),y = expression(paste(Delta," Northing (m)")))
+
+g = g + scale_color_manual(values = cbbPalette)
+g = g + guides(color=guide_legend(title="GNSS Receiver"))
+
+g = g +coord_fixed(ratio=1)
+g = g + theme_bw() +
+  theme(
+    strip.background =element_rect(fill="white"),
+    axis.title =  element_text(size = 12),
+    legend.position = c(0.87,0.13))
+# axis.title = element_text(size = 16))
+g
+
+WD = 28
+HT = 8/18*28
+
+specdim = F
+
+
+ggsave(filename = fig_ffn, plot = g, width = WD, height = HT, units = "cm", bg = "white")
+
+if (specdim){
+  ggsave(filename = fig_ffn, plot = g, width = WD, height = HT, units = "cm", bg = "white")
+} else {
+  ggsave(filename = fig_ffn, plot = g,  units = "cm", bg = "white")
+}
+
+
+```
+
+# ~~~~~~~~~~~~~~~~ #
+# Figure 5002 -  PPK-WRPA Accuracy-at-each-peg-by-receiver
+# ~~~~~~~~~~~~~~~~ #
+
+```{r}
+
+fignum = 5002
+figdesc = "PPK-WRPA Accuracy-at-each-peg-by-receiver"
+figfmt = "png"
+fig_ffn = paste0(plotdir, fignum,"-", figdesc, ".", figfmt)
+
+alp = .3
+
+axlim = 2.01
+
+g = ggplot(PPK_ALL_COLLATED_WRPA) 
+g = g + lims(x = c(-axlim,axlim), y = c(-axlim,axlim))
+g = g + geom_hline(aes(yintercept = 0), color = "red", linetype = "dashed", alpha = alp)
+g = g + geom_vline(aes(xintercept = 0), color = "red", linetype = "dashed", alpha = alp)
+g = g + geom_circle(aes(x0 = 0, y0=0, r=1), color = "red", linetype = "dashed", alpha = alp)
+g = g + geom_circle(aes(x0 = 0, y0=0, r=0.5), color = "red", linetype = "dashed", alpha = alp)
+
+
+g = g + geom_circle(aes(x0 = DEL_LON_avg, y0=DEL_LAT_avg, r=M_PREC, fill = PEG_LAB), linetype=0 , alpha = .5)
+
+
+g = g+ geom_point(aes(DEL_LON_avg , DEL_LAT_avg, color = PEG_LAB ), size = 2) + facet_wrap(~RECEIVER, nrow = 2)
+g = g + labs(x = expression(paste(Delta," Easting (m)")),y = expression(paste(Delta," Northing (m)")))
+
+g = g + scale_color_manual(values = pegPalette)
+g = g + scale_fill_manual(values = pegPalette)
+
+
+g = g + guides(color=guide_legend("Peg"), fill = "none")
+
+g = g +coord_fixed(ratio=1)
+g = g + theme_bw() +
+  theme(
+    strip.background =element_rect(fill="white"),
+    axis.title =  element_text(size = 12),
+    legend.position = "bottom")
+# axis.title = element_text(size = 16))
+g
+
+WD = 28
+HT = 8/18*28
+
+specdim = F
+
+
+ggsave(filename = fig_ffn, plot = g, width = WD, height = HT, units = "cm", bg = "white")
+
+if (specdim){
+  ggsave(filename = fig_ffn, plot = g, width = WD, height = HT, units = "cm", bg = "white")
+} else {
+  ggsave(filename = fig_ffn, plot = g,  units = "cm", bg = "white")
+}
+
+
+```
+
+# ~~~~~~~~~~~~~~~~ #
+# Figure 6001 -  PPK-WRPA Accuracy-vs-Rcvr-by-Peg
+# ~~~~~~~~~~~~~~~~ #
+
+```{r}
+
+fignum = 6001
+figdesc = "PPK-R10-Accuracy-split by REC"
+figfmt = "png"
+fig_ffn = paste0(plotdir, fignum,"-", figdesc, ".", figfmt)
+
+alp = .3
+
+axlim = 2.01
+
+g = ggplot(PPK_ALL_COLLATED_R10) 
+g = g + lims(x = c(-axlim,axlim), y = c(-axlim,axlim))
+g = g + geom_hline(aes(yintercept = 0), color = "red", linetype = "dashed", alpha = alp)
+g = g + geom_vline(aes(xintercept = 0), color = "red", linetype = "dashed", alpha = alp)
+g = g + geom_circle(aes(x0 = 0, y0=0, r=1), color = "red", linetype = "dashed", alpha = alp)
+g = g + geom_circle(aes(x0 = 0, y0=0, r=0.5), color = "red", linetype = "dashed", alpha = alp)
+
+g = g+ geom_point(aes(DEL_LON_avg , DEL_LAT_avg , color = RECEIVER), size = 2) + facet_wrap(~PEG_LAB, nrow = 3)
+g = g + labs(x = expression(paste(Delta," Easting (m)")),y = expression(paste(Delta," Northing (m)")))
+
+g = g + scale_color_manual(values = cbbPalette)
+g = g + guides(color=guide_legend(title="GNSS Receiver"))
+
+g = g +coord_fixed(ratio=1)
+g = g + theme_bw() +
+  theme(
+    strip.background =element_rect(fill="white"),
+    axis.title =  element_text(size = 12),
+    legend.position = c(0.87,0.13))
+# axis.title = element_text(size = 16))
+g
+
+WD = 28
+HT = 8/18*28
+
+specdim = F
+
+
+ggsave(filename = fig_ffn, plot = g, width = WD, height = HT, units = "cm", bg = "white")
+
+if (specdim){
+  ggsave(filename = fig_ffn, plot = g, width = WD, height = HT, units = "cm", bg = "white")
+} else {
+  ggsave(filename = fig_ffn, plot = g,  units = "cm", bg = "white")
+}
+
+
+```
+
+# ~~~~~~~~~~~~~~~~ #
+# Figure 6002 -  PPK-R10 Accuracy-at-each-peg-by-receiver
+# ~~~~~~~~~~~~~~~~ #
+
+```{r}
+
+fignum = 6002
+figdesc = "PPK-R10 Accuracy-at-each-peg-by-receiver"
+figfmt = "png"
+fig_ffn = paste0(plotdir, fignum,"-", figdesc, ".", figfmt)
+
+alp = .3
+
+axlim = 2.01
+
+g = ggplot(PPK_ALL_COLLATED_WRPA) 
+g = g + lims(x = c(-axlim,axlim), y = c(-axlim,axlim))
+g = g + geom_hline(aes(yintercept = 0), color = "red", linetype = "dashed", alpha = alp)
+g = g + geom_vline(aes(xintercept = 0), color = "red", linetype = "dashed", alpha = alp)
+g = g + geom_circle(aes(x0 = 0, y0=0, r=1), color = "red", linetype = "dashed", alpha = alp)
+g = g + geom_circle(aes(x0 = 0, y0=0, r=0.5), color = "red", linetype = "dashed", alpha = alp)
+
+
+g = g + geom_circle(aes(x0 = DEL_LON_avg, y0=DEL_LAT_avg, r=M_PREC, fill = PEG_LAB), linetype=0 , alpha = .5)
+
+
+g = g+ geom_point(aes(DEL_LON_avg , DEL_LAT_avg, color = PEG_LAB ), size = 2) + facet_wrap(~RECEIVER, nrow = 2)
+g = g + labs(x = expression(paste(Delta," Easting (m)")),y = expression(paste(Delta," Northing (m)")))
+
+g = g + scale_color_manual(values = pegPalette)
+g = g + scale_fill_manual(values = pegPalette)
+
+
+g = g + guides(color=guide_legend("Peg"), fill = "none")
+
+g = g +coord_fixed(ratio=1)
+g = g + theme_bw() +
+  theme(
+    strip.background =element_rect(fill="white"),
+    axis.title =  element_text(size = 12),
+    legend.position = "bottom")
+# axis.title = element_text(size = 16))
+g
+
+WD = 28
+HT = 8/18*28
+
+specdim = F
+
+
+ggsave(filename = fig_ffn, plot = g, width = WD, height = HT, units = "cm", bg = "white")
+
+if (specdim){
+  ggsave(filename = fig_ffn, plot = g, width = WD, height = HT, units = "cm", bg = "white")
+} else {
+  ggsave(filename = fig_ffn, plot = g,  units = "cm", bg = "white")
+}
+
+
+```
+
+
+# Examination of precision and accuracy for different PPK methods
+
+
+# ~~~~~~~~~~~~~~~~ #
+# Figure 7001 -  PPK-R10 Accuracy-at-each-peg-by-receiver
+# ~~~~~~~~~~~~~~~~ #
+
+```{r}
+
+fignum = 7001
+figdesc = "Comparison-of-PPK-Methods"
+figfmt = "png"
+fig_ffn = paste0(plotdir, fignum,"-", figdesc, ".", figfmt)
+
+PPK_ALL_COLLATED_filt = PPK_ALL_COLLATED %>% 
+  filter(REC != "KIS" & 
+           !(REC=="TOP" & OCC==3) &
+           !(MET=="PPK-R10" & OCC==3))
+
+g = ggplot(PPK_ALL_COLLATED_filt)
+g = g + geom_hline(aes(yintercept = 0.5), color = "red", linetype="dashed")
+g = g + geom_hline(aes(yintercept = 1), color = "red", linetype="dashed")
+g = g + geom_point(aes(as.character(OCC), M_ACC_float, size = M_PREC_float), color = "darkgrey") + facet_grid(REC~MET)
+g = g + labs(x = "Occupation Number", y = "Accuracy (m)", size = "Precision")
+g = g + theme_bw()
+g = g + theme(strip.background =element_rect(fill="white"))
+g
+
+
+ggsave(filename = fig_ffn, plot = g,  units = "cm", bg = "white")
+
+```
+
+
+
+
+
+```{r}
+
+Folder_List = ANL_TBL %>% 
+  filter(MET=="PPK-DNVK" & !is.na(ANL_ID) & !is.na(REC) & REC !="KIS") %>% 
+  mutate(FolderName = paste0(REC,"-OCC", OCC,"-PEG",PEG )) %>% 
+  pull(FolderName)
+
+dn = "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/data/FINAL_PPP_SOLUTIONS/"
+
+for (i in Folder_List){
+  d2create = paste0(dn, i)
+  dir.create(d2create)
+}
+
+
+```
+
+
+
+
+
+# Read all the PPP pdf files
+
+```{r}
+#read the OCC_TBL - the list of all the occupations
+OCC_TBL_ffn = paste0(datadir, "OCC_TBL.RDS")
+OCC_TBL = readRDS(OCC_TBL_ffn) 
+
+#filter the table to exclude the KIS receiver and the TOPCONN from Occupations 3-9
 OCC_TBL_filt = OCC_TBL %>% 
-  filter(REC != "KIS" & !(REC == "TOP" & OCC > 2))
+  filter(REC != "KIS" & !(REC == "TOP" & OCC > 2) & !(REC == "EML" & OCC == 7))
 
+#define the directory where the PDFs from the PPP are stored
 PPP_results_dn = paste0(datadir, "FINAL_PPP_SOLUTIONS/")
-
 
 
 for (i in 1:nrow(OCC_TBL_filt)){
   
+  print(i)
   OCC_UID_curr = OCC_TBL_filt$OCC_UID[i]
   # i = 1
   # OCCNUM = 18
@@ -3018,7 +3652,161 @@ for (i in 1:nrow(OCC_TBL_filt)){
 }
 
 
-PPP_RESULTS_FINAL = OCC_TBL %>% left_join(PPP_results_COLL, by = "OCC_UID")
+PPP_RESULTS_FINAL = OCC_TBL %>% 
+  left_join(PPP_results_COLL, by = "OCC_UID") %>% 
+  filter(!is.na(UTM_N)) 
+
+PPP_RESULTS_FINAL_sf =PPP_RESULTS_FINAL %>%  
+  st_as_sf(coords = c("UTM_E", "UTM_N"), crs = 32760) %>% 
+  st_transform(crs = 2193) 
+
+PPP_RESULTS_FINAL_coords = PPP_RESULTS_FINAL_sf %>% 
+  st_coordinates() %>% 
+  as_tibble()
+
+names(PPP_RESULTS_FINAL_coords) <- c("X_2193","Y_2193")
+
+PPP_RESULTS_FINAL_VAL = PPP_RESULTS_FINAL %>% 
+  bind_cols(PPP_RESULTS_FINAL_coords) %>% 
+  mutate(
+    DEL_X = X_2193 - EASTING_TRUE ,
+    DEL_Y = Y_2193 - NORTHING_TRUE,
+    DEL_X_SQD = (DEL_X^2),
+    DEL_Y_SQD = (DEL_Y^2),
+    ACC = sqrt(DEL_X_SQD + DEL_X_SQD),
+    PEG_LAB = paste0("Peg ", PEG)
+  )
+
+mapview(PPP_RESULTS_FINAL_sf, col = "PEG")
+
+```
+
+plot each peg as a panel
+
+
+# ~~~~~~~~~~~~~~~~ #
+# Figure 3001 -  Accuracy-vs-Rcvr-by-Method
+# ~~~~~~~~~~~~~~~~ #
+
+```{r}
+
+fignum = 3001
+figdesc = "PPP - Accuracy of Receiver - split by pegs"
+figfmt = "png"
+fig_ffn = paste0(plotdir, fignum,"-", figdesc, ".", figfmt)
+
+alp = .3
+
+axlim = 2.2
+
+g = ggplot(PPP_RESULTS_FINAL_VAL) 
+g = g + lims(x = c(-axlim,axlim), y = c(-axlim,axlim))
+g = g + geom_hline(aes(yintercept = 0), color = "red", linetype = "dashed", alpha = alp)
+g = g + geom_vline(aes(xintercept = 0), color = "red", linetype = "dashed", alpha = alp)
+g = g + geom_circle(aes(x0 = 0, y0=0, r=1), color = "red", linetype = "dashed", alpha = alp)
+g = g + geom_circle(aes(x0 = 0, y0=0, r=0.5), color = "red", linetype = "dashed", alpha = alp)
+
+g = g+ geom_point(aes(DEL_X, DEL_Y, color = RECEIVER, shape = RECEIVER), size = 2) + facet_wrap(~PEG_LAB, nrow = 2)
+g = g + labs(x = expression(paste(Delta," Easting (m)")),y = expression(paste(Delta," Northing (m)")))
+g = g +coord_fixed(ratio=1)
+g = g + theme_bw() +
+  theme(
+    strip.background =element_rect(fill="white"))
+# axis.title = element_text(size = 16))
+g
+
+
+ggsave(filename = fig_ffn, plot = g, units = "cm", bg = "white")
+
+
+```
+
+
+
+# ~~~~~~~~~~~~~~~~ #
+# Figure 3002 -  Accuracy-vs-Rcvr-by-Method
+# ~~~~~~~~~~~~~~~~ #
+
+
+```{r}
+
+
+fignum = 3002
+figdesc = "PPP - Accuracy of Receiver - split by pegs"
+figfmt = "png"
+fig_ffn = paste0(plotdir, fignum,"-", figdesc, ".", figfmt)
+
+alp = .3
+
+axlim = 2.2
+
+g = ggplot(PPP_RESULTS_FINAL_VAL) + geom_point(aes(DEL_X, DEL_Y, color = RECEIVER, shape = RECEIVER)) + facet_wrap(~Peg)
+g = g + lims(x = c(-3,3), y = c(-3,3))
+g = g + geom_hline(aes(yintercept = 0), color = "red", linetype = "dashed")
+g = g + geom_vline(aes(xintercept = 0), color = "red", linetype = "dashed")
+g = g + geom_circle(aes(x0 = 0, y0=0, r=1), color = "red", linetype = "dashed")
+g = g + geom_circle(aes(x0 = 0, y0=0, r=0.5), color = "red", linetype = "dashed")
+
+g = g + labs(x = expression(paste(Delta,"Easting (m)")),y = expression(paste(Delta,"Northing (m)")))
+g = g +coord_fixed(ratio=1)
+g = g + theme_bw()
+g
+
+```
+
+
+
+# ~~~~~~~~~~~~~~~~ #
+# Figure 3003-  Accuracy-for-each-peg-by-recevier
+# ~~~~~~~~~~~~~~~~ #
+
+plot each receiver as a panel
+
+```{r}
+
+fignum = 3003
+figdesc = "Accuracy-for-each-peg-by-recevier"
+figfmt = "png"
+fig_ffn = paste0(plotdir, fignum,"-", figdesc, ".", figfmt)
+
+alp = .3
+
+axlim = 2.2
+
+g = ggplot(PPP_RESULTS_FINAL_VAL, aes(DEL_X, DEL_Y, label =PEG )) 
+
+g = g + geom_text() + facet_wrap(~RECEIVER)
+
+# g = g + geom_point(aes(DEL_X, DEL_Y,  shape = Peg)) + facet_wrap(~REC)
+# 
+# g = g + geom_point(aes(DEL_X, DEL_Y,  shape = Peg)) + facet_wrap(~REC)
+
+
+g = g + lims(x = c(-3,3), y = c(-3,3))
+g = g + geom_hline(aes(yintercept = 0), color = "red", linetype = "dashed")
+g = g + geom_vline(aes(xintercept = 0), color = "red", linetype = "dashed")
+g = g + geom_circle(aes(x0 = 0, y0=0, r=1), color = "red", linetype = "dashed")
+g = g + geom_circle(aes(x0 = 0, y0=0, r=0.5), color = "red", linetype = "dashed")
+g = g + labs(x = expression(paste(Delta,"Easting (m)")),y = expression(paste(Delta,"Northing (m)")))
+g = g + theme_bw()
+g
+
+g = g + labs(x = expression(paste(Delta," Easting (m)")),y = expression(paste(Delta," Northing (m)")))
+g = g +coord_fixed(ratio=1)
+g = g + theme_bw() +
+  theme(
+    strip.background =element_rect(fill="white"))
+# axis.title = element_text(size = 16))
+g
+
+
+ggsave(filename = fig_ffn, plot = g, units = "cm", bg = "white")
+
+```
+
+
+
+```{r}
 PPP_RESULTS_FINAL_ffn = paste0(datadir, "PPP_RESULTS_FINAL.csv")
 
 write_csv(PPP_RESULTS_FINAL, PPP_RESULTS_FINAL_ffn )
@@ -3054,9 +3842,9 @@ ANL_TBL = readxl::read_excel(xl_ffn, sheet = xl_page, range = xl_rng) %>%
   left_join(pegloctab, by = c("PEG"="PegNum")) %>% 
   left_join(REC_DATA, by = c("REC"="CODE"))
 
-
+resave_OCC_TBL=T
 if (resave_OCC_TBL){
-  OCC_TBL = ANL_TBL %>% filter(MET == "PPK-DNVK") %>% select(!c(1:3))
+  OCC_TBL = ANL_TBL %>% filter(MET == "PPK-DNVK") %>% dplyr::select(!c(1:3))
   
   OCC_TBL_ffn = paste0(datadir, "OCC_TBL.RDS")
   saveRDS(OCC_TBL, OCC_TBL_ffn)
@@ -3069,21 +3857,226 @@ if (resave_OCC_TBL){
   
   
 }
+```
 
 
-Folder_List = ANL_TBL %>% 
-  filter(MET=="PPK-DNVK" & !is.na(ANL_ID) & !is.na(REC) & REC !="KIS") %>% 
-  mutate(FolderName = paste0(REC,"-OCC", OCC,"-PEG",PEG )) %>% 
-  pull(FolderName)
+#=====================================
+#   -----------------------------------------------------------------
+# Follow-up Analysis - Figure Series 9000
+#   -----------------------------------------------------------------
+#=====================================
 
-dn = "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/data/FINAL_PPP_SOLUTIONS/"
 
-for (i in Folder_List){
-  d2create = paste0(dn, i)
-  dir.create(d2create)
-}
+## 1. What is effect of different occupation times?1
+
+```{r}
+
+
+
+
+
+
+
 
 
 ```
+
+
+
+
+
+## 2. Get stats for fixed only2
+## 3. What kind of results do we get without differential correction?3
+## 4. Add uncertainty to plots ellipses?4
+## 5. How does increasing baseline to 100 km affect positioning?5
+## 6. How does providing precise clock and ephemeris data affect data?6
+## 7. Can we make RTKLIB-demo give same results as EMLID studio?7
+## 8. How do you find single “best” solution from POS file of many solutions?8
+
+
+```{r}
+
+
+
+REC = "JVD"
+OCC = 6
+PEG = 3
+MET = "PPK-DNVK"
+
+REC = "EML"
+OCC = 6
+PEG = 8
+MET = "PPK-DNVK"
+
+REC = "R10-ROVER"
+OCC = 6
+PEG = 7
+MET = "PPK-DNVK"
+
+REC = "R10-ROVER"
+OCC = 7
+PEG = 3
+MET = "PPK-WRPA"
+
+
+REC = "CAR"
+OCC = 2
+PEG = 7
+MET = "PPK-R10"
+
+REC = "JVD"
+OCC = 1
+PEG = 6
+MET = "PPK-R10"
+
+REC = "JVD"
+OCC = 2
+PEG = 4
+MET = "PPK-R10"
+
+REC = "JVD"
+OCC = 2
+PEG = 4
+MET = "PPK-DNVK"
+
+REC = "JVD"
+OCC = 3
+PEG = 7
+MET = "PPK-DNVK"
+
+
+
+REC = "JVD"
+OCC = 2
+PEG = 4
+MET = "PPK-DNVK"
+
+# construct the POS ffn
+
+
+POS_ffn_stub = "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/data/FINAL_SOLUTIONS/"
+  
+POS_ffn_sdn = paste0(REC,"-OCC",OCC,"-P",PEG,"-",MET,".POS")
+POS_ffn = paste0(POS_ffn_stub, POS_ffn_sdn)
+
+print(POS_ffn)  
+file.exists(POS_ffn)
+
+#these are the lines of code from "qual_based_solution"
+
+POS_data_mdf = read_POS(POS_ffn, FMT_OPT = 5)
+
+POS_data_with_COORDS = convert_crs_df(POS_data_mdf, src_crs = 4326, dst_crs = 2193, 
+                                        input_coord_labs = c("Lon_DD", "Lat_DD"),
+                                        output_coord_labs = c("LON", "LAT")) 
+
+known_coords = get_peg_loc(PEG)
+POS_data_with_COORDS = add_diff_from_known(POS_data_with_COORDS, known_coords =   known_coords) %>%   mutate(
+  melap = (as.numeric(UTC_TIME_PX) - as.numeric(UTC_TIME_PX[1]))/60,
+  sdneu = sqrt(sdn^2 + sde^2 + sdu^2    ))
+  
+POS_data_stats = calc_POS_data_stats(POS_data_with_COORDS, known_coords = known_coords)   
+  
+best_linenum = POS_data_with_COORDS %>% 
+  mutate(linenum = 1:nrow(.)) %>% 
+  filter(Q==1) %>% 
+  slice(which.min(ratio)) %>% 
+  pull(linenum)
+           
+print(paste('best line', best_linenum, 'of ', nrow(POS_data_with_COORDS),'lines'))
+print(paste('best solution after', POS_data_with_COORDS$melap[best_linenum], "minutes"))
+print(paste('best solution is', POS_data_with_COORDS$DEL_LATLON[best_linenum], "m"))
+
+
+
+ggplot(POS_data_with_COORDS) + geom_point(aes(melap,sdneu )) + geom_vline(aes(xintercept = POS_data_with_COORDS$UTC_TIME_PX[POS_data_sel_lng_best_sdneu]))
+
+best_position = POS_data_with_COORDS$DEL_LATLON[POS_data_sel_lng_best_sdneu]
+
+
+best_soln = slice(POS_data_with_COORDS, best_linenum)
+
+
+
+```
+
+# ~~~~~~~~~~~~~~~~ #
+# Figure 9003 -  Best Solution
+# ~~~~~~~~~~~~~~~~ #
+
+```{r}
+fignum = 9003
+figdesc = "PPK-DNVK-Accuracy-for-each-occupation-by-receiver"
+figfmt = "png"
+fig_ffn = paste0(plotdir, fignum,"-", figdesc, ".", figfmt)
+
+alp = .3
+axlim = 2.01
+
+g = ggplot(POS_data_with_COORDS)
+g = g + lims(x = c(-axlim,axlim), y = c(-axlim,axlim))
+g = g + geom_hline(aes(yintercept = 0), color = "red", linetype = "dashed", alpha = alp)
+g = g + geom_vline(aes(xintercept = 0), color = "red", linetype = "dashed", alpha = alp)
+g = g + geom_circle(aes(x0 = 0, y0=0, r=1), color = "red", linetype = "dashed", alpha = alp)
+g = g + geom_circle(aes(x0 = 0, y0=0, r=0.5), color = "red", linetype = "dashed", alpha = alp)
+
+
+# 
+# + geom_point(aes(melap,DEL_LATLON , color=as.character(Q))) + geom_vline(aes(xintercept = POS_data_with_COORDS$UTC_TIME_PX[POS_data_sel_lng_best_sdneu]))
+
+g= g + geom_point(aes(DEL_LON , DEL_LAT , color = as.character(Q))) + facet_wrap(~Q) + geom_vline(aes(xintercept = 0))+ geom_hline(aes(yintercept = 0))
+ 
+g
+g = g + geom_point(data = best_soln, aes(DEL_LON, DEL_LAT), color = "black" )
+
+axlim_abs = 2
+axlims = c(-axlim_abs,axlim_abs)
+
+g = g + lims(x = axlims, y = axlims)
+g = g +coord_fixed(ratio=1)
+g
+
+g = g + theme_bw() +
+  theme(
+    strip.background =element_rect(fill="white"),
+    axis.title =  element_text(size = 12),
+    legend.position = "bottom")
+# axis.title = element_text(size = 16))
+g
+
+WD = 28
+HT = 8/18*28
+
+specdim = F
+
+
+ggsave(filename = fig_ffn, plot = g, width = WD, height = HT, units = "cm", bg = "white")
+```
+
+
+```{r}
+# plot time series of the SD
+POS_data_sel_lng = POS_data_with_COORDS %>% 
+  filter(age>=0) %>%
+  dplyr::select(melap, contains("sd"), nvsv, age,ratio,DEL_LATLON, Q) %>% 
+  gather(key,value, -melap,-Q) 
+  
+
+#find the lowest point of sdneu
+
+melap_best = POS_data_with_COORDS$melap[POS_data_sel_lng_best_sdneu]
+
+# 
+# ggplot(POS_data_sel_lng) + geom_point(aes(melap, value, color = as.character(Q))) + facet_wrap(~key, scales = "free_y") + geom_vline(aes(xintercept = melap_best))
+
+
+
+```
+
+
+
+## 9. Do the “Single” Solutions get included into the POS file?9
+## 10. Does the PPP pos file provide any more information that we don’t get from the PDF?10
+
 
 
