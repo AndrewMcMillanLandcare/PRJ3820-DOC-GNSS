@@ -1270,15 +1270,18 @@ qual_based_soln = function(POS_data_input = NULL, POS_ffn = NULL, known_coords =
   
   
   
-  POS_data_stats = calc_POS_data_stats(POS_data_with_COORDS, known_coords = known_coords) 
+  POS_data_stats = calc_POS_data_stats(POS_data_with_COORDS, known_coords = known_coords)
   
-  print(t(POS_data_stats))
+  # POS_data_stats %>% as.data.frame() %>% 
+  
+  # print(t(POS_data_stats))
   
   # POS_data_fixed = POS_data_all %>% filter(Q==1)
   
   
-  return(t(POS_data_stats))
+  # return(t(POS_data_stats))
   
+  return(POS_data_stats)
   
 }
 
@@ -1294,8 +1297,10 @@ calc_POS_data_stats = function(POS_data, known_coords=NULL){
   if (testmode){
     
     POS_data_tmp_ffn = paste0(datadir,"TestPosData.RDS")
-    saveRDS(POS_data, POS_data_tmp_ffn)
-    known_coords = get_peg_loc(6)
+    # saveRDS(POS_data, POS_data_tmp_ffn)
+    
+    POS_data = readRDS(POS_data_tmp_ffn)
+    known_coords = get_peg_loc(3)
     
   }
   
@@ -1686,6 +1691,24 @@ proc_pos = function(REC, OCC,PEG,MET){
   X = anal_POS_generic(POS_ffn = POS_ffn, known_coords = get_peg_loc(PEG),POS_FMT = 5)
 }
 
+proc_pos_seg = function(REC, OCC,PEG,MET, HH, MM){
+  
+  # 
+  # REC = "JVD"
+  # OCC = 3
+  # PEG = 7
+  # HH = "01"
+  # MM = "00"
+  # 
+  POS_ffn_stub = "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/data/SOLUTIONS-OCC-TIME-ASSESSMENT/"
+  
+  POS_ffn_sdn = paste0(REC,"-OCC",OCC,"-P",PEG,"-",MET,"-",HH,"H",MM,"M.POS")
+  POS_ffn = paste0(POS_ffn_stub, POS_ffn_sdn)
+  
+  file.exists(POS_ffn)
+  
+  X = anal_POS_generic(POS_ffn = POS_ffn, known_coords = get_peg_loc(PEG),POS_FMT = 5)
+}
 
 
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++

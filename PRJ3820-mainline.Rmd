@@ -1,9 +1,9 @@
-
 ---
 title: "CycloneDamageAssessment-MainLine"
 output: html_notebook
 editor_options: 
   chunk_output_type: console
+chunk_output_type: console
 chunk_output_type: console
 ---
 
@@ -63,6 +63,13 @@ source(util_script)
 cbbPalette <- c("#D55E00", "#56B4E9", "#CC79A7", "#009E73", "#000000", "#E69F00", "#56B4E9")
 
 pegPalette <- c("#999999", "#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7")
+
+# 
+# CAR "#D55E00" 
+# EML "#56B4E9" 
+# JVD "#CC79A7" 
+# TOP "#009E73" 
+# R10 "#000000" 
 
 
 ```
@@ -2850,12 +2857,10 @@ X = anal_POS_generic(POS_ffn = POS_ffn, known_coords = get_peg_loc(PEG),POS_FMT 
 
 
 #===========================================================================
-# PPK-WRPA
+# PPK-DNVK
 #===========================================================================
 
 ```{r}
-
-
 #=================================================
 
 SOLN = proc_pos("CAR", 1, 4, "PPK-DNVK")
@@ -2894,7 +2899,14 @@ SOLN = proc_pos("JVD", 9, 8, "PPK-DNVK")
 SOLN = proc_pos("EML", 9, 1, "PPK-DNVK")
 
 #=================================================
+```
 
+
+#===========================================================================
+# PPK-WRPA
+#===========================================================================
+
+```{r}
 SOLN = proc_pos("CAR", 1, 4, "PPK-WRPA")
 SOLN = proc_pos("TOP", 1, 5, "PPK-WRPA")
 SOLN = proc_pos("JVD", 1, 6, "PPK-WRPA")
@@ -2931,7 +2943,15 @@ SOLN = proc_pos("JVD", 9, 8, "PPK-WRPA")
 SOLN = proc_pos("EML", 9, 1, "PPK-WRPA")
 
 #=================================================
+```
 
+
+#===========================================================================
+# PPK-R10
+#===========================================================================
+
+
+```{r}
 SOLN = proc_pos("CAR", 1, 4, "PPK-R10")
 SOLN = proc_pos("TOP", 1, 5, "PPK-R10")
 SOLN = proc_pos("JVD", 1, 6, "PPK-R10")
@@ -3346,6 +3366,8 @@ g = g + geom_circle(aes(x0 = 0, y0=0, r=0.5), color = "red", linetype = "dashed"
 
 g = g+ geom_point(aes(DEL_LON_avg , DEL_LAT_avg , color = RECEIVER), size = 2) + facet_wrap(~PEG_LAB, nrow = 3)
 g = g + labs(x = expression(paste(Delta," Easting (m)")),y = expression(paste(Delta," Northing (m)")))
+
+
 
 g = g + scale_color_manual(values = cbbPalette)
 g = g + guides(color=guide_legend(title="GNSS Receiver"))
@@ -3872,6 +3894,143 @@ if (resave_OCC_TBL){
 ```{r}
 
 
+MM_VEC = c("05", "10", "20", "40", "00", "00", "00", "00", "00", "00", "00", "00")
+HH_VEC = c("00", "00", "00", "00", "01", "02", "03", "04", "06", "08", "10", "12")
+
+OCC_TBL_SEG = readRDS(OCC_TBL_ffn) %>% 
+  filter((REC == "JVD" | REC == "EML") & OCC==3)
+
+
+
+i=1
+
+
+for (i in 1:length(HH_VEC)){
+  print(paste(HH_VEC[i], MM_VEC[i]))
+  csoln = proc_pos_seg("JVD", 3,7,"PPK-DNVK", HH_VEC[i], MM_VEC[i]) 
+  csoln_df = t(csoln) %>% as_tibble() %>% 
+    mutate(
+      SEG = paste0(HH_VEC[i], MM_VEC[i]),
+      REC = "JVD") 
+  if (i==1){
+    SOLN_ALL_JVD = csoln_df
+  } else {
+    SOLN_ALL_JVD = SOLN_ALL_JVD %>% bind_rows(csoln_df) 
+  }
+  
+}
+
+
+for (i in 1:length(HH_VEC)){
+  print(paste(HH_VEC[i], MM_VEC[i]))
+  csoln = proc_pos_seg("EML", 3,3,"PPK-DNVK", HH_VEC[i], MM_VEC[i])
+  csoln_df = t(csoln) %>% as_tibble() %>% 
+    mutate(
+      SEG = paste0(HH_VEC[i], MM_VEC[i]),
+      REC = "EML") 
+  if (i==1){
+    SOLN_ALL_EML = csoln_df
+  } else {
+    SOLN_ALL_EML = SOLN_ALL_EML %>% bind_rows(csoln_df) 
+  }
+  
+}
+
+for (i in 1:(length(HH_VEC)-2)){
+  print(paste(HH_VEC[i], MM_VEC[i]))
+  csoln = proc_pos_seg("R10-ROVER", 3,1,"PPK-DNVK", HH_VEC[i], MM_VEC[i])
+  csoln_df = t(csoln) %>% as_tibble() %>% 
+   mutate(
+      SEG = paste0(HH_VEC[i], MM_VEC[i]),
+      REC = "R10-ROVER") 
+  if (i==1){
+    SOLN_ALL_R10_ROVER = csoln_df
+  } else {
+    SOLN_ALL_R10_ROVER = SOLN_ALL_R10_ROVER %>% bind_rows(csoln_df) 
+  }
+  
+}
+
+
+SOLN_DIFF_OCC_TIMES = SOLN_ALL_R10_ROVER %>% 
+  bind_rows(SOLN_ALL_JVD) %>% 
+  bind_rows(SOLN_ALL_EML) %>% 
+  mutate(OCC_Time_hours = as.numeric(substr(SEG,1,2)) + as.numeric(substr(SEG,3,4))/60) %>% 
+  dplyr::select(OCC_Time_hours, everything()) %>% 
+  mutate(across(c(contains("ACC"),contains("PREC")), as.numeric))
+
+
+SOLN_DIFF_OCC_TIMES_ffn = paste0(datadir, "SOLN_DIFF_OCC_TIMES.RDS")
+
+saveRDS(SOLN_DIFF_OCC_TIMES, SOLN_DIFF_OCC_TIMES_ffn)
+
+
+
+
+SOLN_DIFF_OCC_TIMES$SEG
+```
+
+# ~~~~~~~~~~~~~~~~ #
+# Figure 9001 -  Effect-of-occupation-time
+# ~~~~~~~~~~~~~~~~ #
+
+```{r}
+fignum = 9001
+figdesc = "Effect-of-occupation-time"
+figfmt = "png"
+fig_ffn = paste0(plotdir, fignum,"-", figdesc, ".", figfmt)
+
+alp = .3
+axlim = 2.01
+
+
+
+REC_lookup = readRDS(OCC_TBL_ffn) %>% dplyr::select(REC, RECEIVER) %>% distinct()
+REC_lookup$REC[5] = "R10-ROVER"
+
+
+SOLN_DIFF_OCC_TIMES_ffn = paste0(datadir, "SOLN_DIFF_OCC_TIMES.RDS")
+SOLN_DIFF_OCC_TIMES = readRDS(SOLN_DIFF_OCC_TIMES_ffn) %>% left_join(REC_lookup, by = "REC")
+
+
+g = ggplot(SOLN_DIFF_OCC_TIMES) + geom_point(aes(OCC_Time_hours, M_ACC_float, size = M_PREC_float, color = RECEIVER))
+
+g = g + geom_line(aes(OCC_Time_hours, M_ACC_float,  color = RECEIVER))
+
+g = g + scale_color_manual(values = cbbPalette[c(2,3,5)])
+
+# g = g + lims(x = c(0,5))
+g = g + labs(x = "Occupation time (hours)", y = "Position accuracy (m)", color = "Receiver", size = "Precision (m)")
+
+
+g = g + theme_minimal()
+g
+
+g_inset = g + lims(x = c(0,2)) 
+g_inset = g_inset + theme(
+  legend.position = "none",
+  plot.background = element_rect(fill = 'white', color = "white"))
+
+library(cowplot)
+
+whole_plot = ggdraw() + draw_plot(g) + draw_plot(g_inset, x=0.18, y = .4, width = .5, height = .5)
+whole_plot
+
+ggsave(filename = fig_ffn, plot = whole_plot,  units = "cm", bg = "white")
+
+
+```
+
+
+
+
+
+
+
+## 2. Get stats for fixed only2
+
+
+```{r}
 
 
 
@@ -3882,15 +4041,89 @@ if (resave_OCC_TBL){
 ```
 
 
-
-
-
-## 2. Get stats for fixed only2
 ## 3. What kind of results do we get without differential correction?3
 ## 4. Add uncertainty to plots ellipses?4
 ## 5. How does increasing baseline to 100 km affect positioning?5
+
+
+
+
+```{r}
+REC_lookup = readRDS(OCC_TBL_ffn) %>% dplyr::select(REC, RECEIVER) %>% distinct()
+# REC_lookup$REC[5] = "R10-ROVER"
+
+
+
+PPK_ALL_COLLATED = read_csv(paste0(datadir, "PPK_ALL_COLL.csv"))
+PPK_ALL_COLLATED_filt = PPK_ALL_COLLATED %>% 
+  filter(REC != "KIS") %>% 
+  mutate(M_PREC_float_sq = M_PREC_float^2)
+
+PPK_ALL_COLLATED_filt_smy = PPK_ALL_COLLATED_filt %>% 
+  group_by(REC, MET) %>% 
+  summarise(
+    M_ACC_float_mean = mean(M_ACC_float, na.rm=T),
+    M_ACC_float_sumsq= sum(M_PREC_float_sq, na.rm=T)
+  ) %>% 
+  mutate(
+    M_ACC_float_prec_prop = sqrt(M_ACC_float_sumsq)
+  ) %>% 
+  left_join(REC_lookup, by = "REC") %>% 
+  filter(MET != "PPK-R10") %>% 
+  mutate(
+    CORS = ifelse(MET == "PPK-DNVK", "DNVK (31 km)", "WRPA (83 km)")
+  )
+
+
+
+```
+
+# ~~~~~~~~~~~~~~~~ #
+# Figure 9005 -  Effect-of-longer-baseline
+# ~~~~~~~~~~~~~~~~ #
+
+```{r}
+
+fignum = 9005
+figdesc = "Effect-of-longer-baseline"
+figfmt = "png"
+fig_ffn = paste0(plotdir, fignum,"-", figdesc, ".", figfmt)
+
+g = ggplot(PPK_ALL_COLLATED_filt_smy) 
+
+dodge_dist = .2
+
+g = g + geom_point(aes(RECEIVER, M_ACC_float_mean , color = CORS), position = position_dodge(width = dodge_dist))
+
+g = g + geom_errorbar(aes(x = RECEIVER,ymin = M_ACC_float_mean - M_ACC_float_prec_prop , ymax = M_ACC_float_mean + M_ACC_float_prec_prop, color = CORS), width = .4,position = position_dodge(width = dodge_dist))
+
+g = g + labs(x = "GNSS Receiver", y = "Positional accuracy (m)", color = "CORS Station")
+
+g = g + theme_minimal() + theme(axis.text.x = element_text(angle = 90), legend.position = "bottom")
+g
+
+
+ggsave(filename = fig_ffn, plot = whole_plot,  units = "cm", bg = "white")
+
+
+```
+
+
+```{r}
+ggplot(PPK_ALL_COLLATED) + geom_point(aes(OCC, M_ACC_float, color = MET)) + facet_wrap(~RECEIVER)
+
+
+
+```
+
+
+
+
+
+
 ## 6. How does providing precise clock and ephemeris data affect data?6
 ## 7. Can we make RTKLIB-demo give same results as EMLID studio?7
+
 ## 8. How do you find single “best” solution from POS file of many solutions?8
 
 
@@ -3947,15 +4180,21 @@ MET = "PPK-DNVK"
 
 
 REC = "JVD"
-OCC = 2
-PEG = 4
+OCC = 6
+PEG = 3
 MET = "PPK-DNVK"
 
+
+
+REC = "EML"
+OCC = 6
+PEG = 8
+MET = "PPK-DNVK"
 # construct the POS ffn
 
 
 POS_ffn_stub = "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/data/FINAL_SOLUTIONS/"
-  
+
 POS_ffn_sdn = paste0(REC,"-OCC",OCC,"-P",PEG,"-",MET,".POS")
 POS_ffn = paste0(POS_ffn_stub, POS_ffn_sdn)
 
@@ -3967,25 +4206,26 @@ file.exists(POS_ffn)
 POS_data_mdf = read_POS(POS_ffn, FMT_OPT = 5)
 
 POS_data_with_COORDS = convert_crs_df(POS_data_mdf, src_crs = 4326, dst_crs = 2193, 
-                                        input_coord_labs = c("Lon_DD", "Lat_DD"),
-                                        output_coord_labs = c("LON", "LAT")) 
+                                      input_coord_labs = c("Lon_DD", "Lat_DD"),
+                                      output_coord_labs = c("LON", "LAT")) 
 
 known_coords = get_peg_loc(PEG)
 POS_data_with_COORDS = add_diff_from_known(POS_data_with_COORDS, known_coords =   known_coords) %>%   mutate(
   melap = (as.numeric(UTC_TIME_PX) - as.numeric(UTC_TIME_PX[1]))/60,
   sdneu = sqrt(sdn^2 + sde^2 + sdu^2    ))
-  
+
 POS_data_stats = calc_POS_data_stats(POS_data_with_COORDS, known_coords = known_coords)   
-  
+
 best_linenum = POS_data_with_COORDS %>% 
   mutate(linenum = 1:nrow(.)) %>% 
   filter(Q==1) %>% 
   slice(which.min(ratio)) %>% 
   pull(linenum)
-           
+
 print(paste('best line', best_linenum, 'of ', nrow(POS_data_with_COORDS),'lines'))
 print(paste('best solution after', POS_data_with_COORDS$melap[best_linenum], "minutes"))
 print(paste('best solution is', POS_data_with_COORDS$DEL_LATLON[best_linenum], "m"))
+print(paste('ratio:', POS_data_with_COORDS$ratio[best_linenum]))
 
 
 
@@ -4001,17 +4241,26 @@ best_soln = slice(POS_data_with_COORDS, best_linenum)
 ```
 
 # ~~~~~~~~~~~~~~~~ #
-# Figure 9003 -  Best Solution
+# Figure 9008 -  Best Solution
 # ~~~~~~~~~~~~~~~~ #
 
 ```{r}
-fignum = 9003
+fignum = 9008
 figdesc = "PPK-DNVK-Accuracy-for-each-occupation-by-receiver"
 figfmt = "png"
 fig_ffn = paste0(plotdir, fignum,"-", figdesc, ".", figfmt)
 
 alp = .3
 axlim = 2.01
+
+
+POS_data_with_COORDS = POS_data_with_COORDS %>% 
+  mutate(SolutionType = case_when(
+    Q==1 ~ "Fixed",
+    Q==2 ~ "Float",
+    Q==5 ~ "Single",
+  ))
+
 
 g = ggplot(POS_data_with_COORDS)
 g = g + lims(x = c(-axlim,axlim), y = c(-axlim,axlim))
@@ -4024,15 +4273,16 @@ g = g + geom_circle(aes(x0 = 0, y0=0, r=0.5), color = "red", linetype = "dashed"
 # 
 # + geom_point(aes(melap,DEL_LATLON , color=as.character(Q))) + geom_vline(aes(xintercept = POS_data_with_COORDS$UTC_TIME_PX[POS_data_sel_lng_best_sdneu]))
 
-g= g + geom_point(aes(DEL_LON , DEL_LAT , color = as.character(Q))) + facet_wrap(~Q) + geom_vline(aes(xintercept = 0))+ geom_hline(aes(yintercept = 0))
- 
+g= g + geom_point(aes(DEL_LON , DEL_LAT ), color = "cyan") + facet_wrap(~SolutionType) + geom_vline(aes(xintercept = 0))+ geom_hline(aes(yintercept = 0))
+
 g
 g = g + geom_point(data = best_soln, aes(DEL_LON, DEL_LAT), color = "black" )
 
-axlim_abs = 2
-axlims = c(-axlim_abs,axlim_abs)
+
 
 g = g + lims(x = axlims, y = axlims)
+g = g + labs(x = expression(paste(Delta," Easting (m)")),y = expression(paste(Delta," Northing (m)")), color = "Quality")
+
 g = g +coord_fixed(ratio=1)
 g
 
@@ -4060,7 +4310,7 @@ POS_data_sel_lng = POS_data_with_COORDS %>%
   filter(age>=0) %>%
   dplyr::select(melap, contains("sd"), nvsv, age,ratio,DEL_LATLON, Q) %>% 
   gather(key,value, -melap,-Q) 
-  
+
 
 #find the lowest point of sdneu
 
