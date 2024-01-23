@@ -1596,34 +1596,34 @@ anal_POS_generic = function(POS_ffn, known_coords = NULL, POS_FMT = NULL){
   
   SOLN_QBASED = qual_based_soln(POS_data_input = NULL, POS_ffn = POS_ffn, known_coords = known_coords, POS_FMT = POS_FMT)
   
-  SOLN_QBASED_df = as.data.frame(t(SOLN_QBASED))
+  # SOLN_QBASED_df = as.data.frame(t(SOLN_QBASED))
   print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
   print(paste("Analysing", POS_ffn))
   print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
-  print(paste("LAT = ",formatC(SOLN_QBASED_df$LAT_avg,digits = 11)))
-  print(paste("LON = ",formatC(SOLN_QBASED_df$LON_avg,digits = 11)))
-  print(paste("ELEV = ",formatC(SOLN_QBASED_df$ELE_avg,digits = 6)))
-  print(paste0("Start : ", SOLN_QBASED_df$TM_STT, " | End : ", SOLN_QBASED_df$TM_END, " | Occ Time (hours) :", SOLN_QBASED_df$OCC_TM))
-  print(paste("ACCURACY +/- PREC (ALL)            = ",formatC(SOLN_QBASED_df$M_ACC_all,digits = 4), " +/- ", formatC(SOLN_QBASED_df$M_PREC_all,digits = 4), "m"))
-  print(paste("ACCURACY +/- PREC (SINGLE)          = ",formatC(SOLN_QBASED_df$M_ACC_single,digits = 4), " +/- ", formatC(SOLN_QBASED_df$M_PREC_single,digits = 4), "m"))
-  print(paste("ACCURACY +/- PREC (FLOAT)          = ",formatC(SOLN_QBASED_df$M_ACC_float,digits = 4), " +/- ", formatC(SOLN_QBASED_df$M_PREC_float,digits = 4), "m"))
-  print(paste("ACCURACY +/- PREC (FIXED)          = ",formatC(SOLN_QBASED_df$M_ACC_fixed,digits = 4), " +/- ", formatC(SOLN_QBASED_df$M_PREC_fixed,digits = 4), "m"))
-  print(paste("ACCURACY +/- PREC (FIXED or FLOAT) = ",formatC(SOLN_QBASED_df$M_ACC_fixed_or_float,digits = 4), " +/- ", formatC(SOLN_QBASED_df$M_PREC_fixed_or_float,digits = 4), "m"))
+  print(paste("LAT = ",formatC(SOLN_QBASED$LAT_avg,digits = 11)))
+  print(paste("LON = ",formatC(SOLN_QBASED$LON_avg,digits = 11)))
+  print(paste("ELEV = ",formatC(SOLN_QBASED$ELE_avg,digits = 6)))
+  print(paste0("Start : ", SOLN_QBASED$TM_STT, " | End : ", SOLN_QBASED$TM_END, " | Occ Time (hours) :", SOLN_QBASED$OCC_TM))
+  print(paste("ACCURACY +/- PREC (ALL)            = ",formatC(SOLN_QBASED$M_ACC_all,digits = 4), " +/- ", formatC(SOLN_QBASED$M_PREC_all,digits = 4), "m"))
+  print(paste("ACCURACY +/- PREC (SINGLE)          = ",formatC(SOLN_QBASED$M_ACC_single,digits = 4), " +/- ", formatC(SOLN_QBASED$M_PREC_single,digits = 4), "m"))
+  print(paste("ACCURACY +/- PREC (FLOAT)          = ",formatC(SOLN_QBASED$M_ACC_float,digits = 4), " +/- ", formatC(SOLN_QBASED$M_PREC_float,digits = 4), "m"))
+  print(paste("ACCURACY +/- PREC (FIXED)          = ",formatC(SOLN_QBASED$M_ACC_fixed,digits = 4), " +/- ", formatC(SOLN_QBASED$M_PREC_fixed,digits = 4), "m"))
+  print(paste("ACCURACY +/- PREC (FIXED or FLOAT) = ",formatC(SOLN_QBASED$M_ACC_fixed_or_float,digits = 4), " +/- ", formatC(SOLN_QBASED$M_PREC_fixed_or_float,digits = 4), "m"))
   
-  print(paste("PREC = ",formatC(SOLN_QBASED_df$M_PREC,digits = 4)))
-  print(paste("PERCENT SINGLE = ",formatC(SOLN_QBASED_df$PERCENT_SINGLE,digits = 4),"%"))
-  print(paste("PERCENT FIXED = ",formatC(SOLN_QBASED_df$PERCENT_FIXED,digits = 4),"%"))
-  print(paste("PERCENT FLOAT = ",formatC(SOLN_QBASED_df$PERCENT_FLOAT,digits = 4),"%"))
+  print(paste("PREC = ",formatC(SOLN_QBASED$M_PREC,digits = 4)))
+  print(paste("PERCENT SINGLE = ",formatC(SOLN_QBASED$PERCENT_SINGLE,digits = 4),"%"))
+  print(paste("PERCENT FIXED = ",formatC(SOLN_QBASED$PERCENT_FIXED,digits = 4),"%"))
+  print(paste("PERCENT FLOAT = ",formatC(SOLN_QBASED$PERCENT_FLOAT,digits = 4),"%"))
   
   
   print(paste(
-    formatC(SOLN_QBASED_df$LON_avg,digits = 11),
-    formatC(SOLN_QBASED_df$LAT_avg,digits = 11),
-    formatC(SOLN_QBASED_df$ELE_avg,digits = 6),
-    formatC(SOLN_QBASED_df$M_ACC_all,digits = 4),
-    formatC(SOLN_QBASED_df$M_PREC_all,digits = 4),
-    formatC(SOLN_QBASED_df$M_ACC_float,digits = 4),
-    formatC(SOLN_QBASED_df$M_PREC_float,digits = 4)
+    formatC(SOLN_QBASED$LON_avg,digits = 11),
+    formatC(SOLN_QBASED$LAT_avg,digits = 11),
+    formatC(SOLN_QBASED$ELE_avg,digits = 6),
+    formatC(SOLN_QBASED$M_ACC_all,digits = 4),
+    formatC(SOLN_QBASED$M_PREC_all,digits = 4),
+    formatC(SOLN_QBASED$M_ACC_float,digits = 4),
+    formatC(SOLN_QBASED$M_PREC_float,digits = 4)
     
     
     
@@ -1869,7 +1869,7 @@ collate_ppk = function(MET, OCC_TBL_ffn){
   
   for (i in 1:nrow(OCC_TBL_filt)){
     
-    
+    # i=1
     cPOS_dn = "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/data/FINAL_SOLUTIONS/"
     cPOS_fn = OCC_TBL_filt$POS_ffn[i]
     cPOS_ffn = paste0(cPOS_dn, cPOS_fn)
@@ -1890,7 +1890,7 @@ collate_ppk = function(MET, OCC_TBL_ffn){
       
       SOLN = proc_pos(cREC, cOCC, cPEG, cMET)
       
-      SOLN_df = as.data.frame(t(SOLN)) %>% 
+      SOLN_df = SOLN %>% 
         mutate(POS_fn = cPOS_fn)
       
       

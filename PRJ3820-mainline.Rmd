@@ -3171,6 +3171,7 @@ PPK_ALL_COLLATED_R10 = PPK_ALL_COLLATED %>%
 
 ```{r}
 
+
 fignum = 4001
 figdesc = "PPK-DNVK-Accuracy-split by REC"
 figfmt = "png"
@@ -4042,7 +4043,35 @@ ggsave(filename = fig_ffn, plot = whole_plot,  units = "cm", bg = "white")
 
 
 ## 3. What kind of results do we get without differential correction?3
+
+
+```{r}
+
+#have processed all Occupation #2 data as singkle using RTK Lib
+
+
+SINGLE_SOLN_dn = "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/data/SINGLE_SOLUTIONS/"
+
+
+POS_ffn_JVD_SINGLE = paste0(SINGLE_SOLN_dn, "JVD-OCC2-P4-SINGLE.pos")
+POS_ffn_CAR_SINGLE = paste0(SINGLE_SOLN_dn, "CAR-OCC2-P7-SINGLE.pos")
+POS_ffn_EML_SINGLE = paste0(SINGLE_SOLN_dn, "EML-OCC2-P6-SINGLE.pos")
+POS_ffn_TOP_SINGLE = paste0(SINGLE_SOLN_dn, "TOP-OCC2-P8-SINGLE.pos")
+
+POS_SMY_JVD_OCC2_SINGLE = anal_POS_generic(POS_ffn = POS_ffn_JVD_SINGLE, known_coords = get_peg_loc(4),POS_FMT = 5)
+POS_SMY_CAR_OCC2_SINGLE = anal_POS_generic(POS_ffn = POS_ffn_CAR_SINGLE, known_coords = get_peg_loc(7),POS_FMT = 5)
+POS_SMY_EML_OCC2_SINGLE = anal_POS_generic(POS_ffn = POS_ffn_EML_SINGLE, known_coords = get_peg_loc(6),POS_FMT = 5)
+POS_SMY_TOP_OCC2_SINGLE = anal_POS_generic(POS_ffn = POS_ffn_TOP_SINGLE, known_coords = get_peg_loc(8),POS_FMT = 5)
+
+
+
+```
+
+
 ## 4. Add uncertainty to plots ellipses?4
+
+
+
 ## 5. How does increasing baseline to 100 km affect positioning?5
 
 
@@ -4097,13 +4126,13 @@ g = g + geom_point(aes(RECEIVER, M_ACC_float_mean , color = CORS), position = po
 
 g = g + geom_errorbar(aes(x = RECEIVER,ymin = M_ACC_float_mean - M_ACC_float_prec_prop , ymax = M_ACC_float_mean + M_ACC_float_prec_prop, color = CORS), width = .4,position = position_dodge(width = dodge_dist))
 
-g = g + labs(x = "GNSS Receiver", y = "Positional accuracy (m)", color = "CORS Station")
+g = g + labs(x = "GNSS Receiver", y = "Positional accuracy (m)", color = "CORS Station (baseline length)")
 
 g = g + theme_minimal() + theme(axis.text.x = element_text(angle = 90), legend.position = "bottom")
 g
 
 
-ggsave(filename = fig_ffn, plot = whole_plot,  units = "cm", bg = "white")
+ggsave(filename = fig_ffn, plot = g,  units = "cm", bg = "white")
 
 
 ```
@@ -4122,7 +4151,64 @@ ggplot(PPK_ALL_COLLATED) + geom_point(aes(OCC, M_ACC_float, color = MET)) + face
 
 
 ## 6. How does providing precise clock and ephemeris data affect data?6
+
 ## 7. Can we make RTKLIB-demo give same results as EMLID studio?7
+
+
+```{r}
+# Step 1. Compare Results of RTK Proc with Emlid Studio
+
+proc_cf_dn = paste0(datadir, "RTKLIB_vs_EmlidStudio/")
+
+POS_ffn_EMLSTU = paste0(proc_cf_dn,"JVD-OCC6-P3-PPK-DNVK.pos")
+POS_ffn_RTKLIB = paste0(proc_cf_dn,"JVD-OCC6-P3-PPK-DNVK-RTKLIB.pos")
+
+PEG = 3
+X_EMLSTU = anal_POS_generic(POS_ffn = POS_ffn_EMLSTU, known_coords = get_peg_loc(PEG),POS_FMT = 5)
+X_RTKLIB = anal_POS_generic(POS_ffn = POS_ffn_RTKLIB, known_coords = get_peg_loc(PEG),POS_FMT = 5)
+
+
+print(paste("LAT = ", formatC(X_EMLSTU[1], digits = 15), "LON = ", formatC(X_EMLSTU[2], digits = 15) ))
+
+
+print(formatC(X_EMLSTU$LAT_avg_float, digits = 12))
+print(formatC(X_EMLSTU$LON_avg_float, digits = 12))
+
+
+
+```
+
+
+```{r}
+X_RTKLIB = anal_POS_generic(POS_ffn = POS_ffn_RTKLIB, known_coords = get_peg_loc(PEG),POS_FMT = 5)
+
+
+print("Lat")
+print(formatC(X_RTKLIB$LAT_avg_float, digits = 12))
+print(formatC(X_EMLSTU$LAT_avg_float, digits = 12))
+print(paste("difference = ", X_RTKLIB$LAT_avg_float - X_EMLSTU$LAT_avg_float))
+
+print("Long")
+print(formatC(X_EMLSTU$LON_avg_float, digits = 12))
+print(formatC(X_RTKLIB$LON_avg_float, digits = 12))
+print(paste("difference = ", X_RTKLIB$LON_avg_float - X_EMLSTU$LON_avg_float))
+
+
+
+print(formatC(X_EMLSTU$DEL_LAT_avg, digits = 12))
+print(formatC(X_EMLSTU$DEL_LON_avg, digits = 12))
+
+print(formatC(X_RTKLIB$DEL_LAT_avg, digits = 12))
+print(formatC(X_RTKLIB$DEL_LON_avg, digits = 12))
+
+
+
+# Looks liek we can't get the same results with EMLID Studio as for RTK Lib
+
+
+```
+
+
 
 ## 8. How do you find single “best” solution from POS file of many solutions?8
 
