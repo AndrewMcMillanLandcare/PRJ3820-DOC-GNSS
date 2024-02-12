@@ -13,7 +13,7 @@ editor_options:
 ffn = "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/data/FINAL_PPP_SOLUTIONS/JVD-OCC3-PEG7/NZ_field_test_8Nov23_30sec.pdf"
 
 
-read_PPP_file = function(ffn){
+read_PPP_file_renamed = function(ffn){
   
   library(pdftools)
 

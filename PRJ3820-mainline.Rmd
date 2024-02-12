@@ -20,7 +20,8 @@ library(fasterize)
 
 source("C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/Code/R/PRJ3820-DOC-GNSS/GNSS_utils.R")
 
-
+options(show_col_types = FALSE)
+options(readr.show_col_types = FALSE)
 
 proj_dn = "PRJ3820-DOC-GNSS/"
 
@@ -64,9 +65,11 @@ cbbPalette <- c("#D55E00", "#56B4E9", "#CC79A7", "#009E73", "#000000", "#E69F00"
 
 pegPalette <- c("#999999", "#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7")
 
+occPalette <- c("#999999", "#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2","#000000", "#CC79A7")
+
 # 
 # CAR "#D55E00" 
-# EML "#56B4E9" 
+# R10-ROVER "#56B4E9" 
 # JVD "#CC79A7" 
 # TOP "#009E73" 
 # R10 "#000000" 
@@ -2964,9 +2967,9 @@ SOLN = proc_pos("EML", 2, 6, "PPK-R10")
 SOLN = proc_pos("CAR", 2, 7, "PPK-R10")
 SOLN = proc_pos("TOP", 2, 8, "PPK-R10")
 
-SOLN = proc_pos("R10-ROVER", 3, 1, "PPK-R10")
-SOLN = proc_pos("EML", 3, 3, "PPK-R10")
-SOLN = proc_pos("JVD", 3, 7, "PPK-R10")
+# SOLN = proc_pos("R10-ROVER", 3, 1, "PPK-R10")
+# SOLN = proc_pos("EML", 3, 3, "PPK-R10")
+# SOLN = proc_pos("JVD", 3, 7, "PPK-R10")
 
 SOLN = proc_pos("R10-ROVER", 5, 4, "PPK-R10")
 SOLN = proc_pos("EML", 5, 2, "PPK-R10")
@@ -2986,6 +2989,8 @@ SOLN = proc_pos("EML", 8, 6, "PPK-R10")
 
 SOLN = proc_pos("JVD", 9, 8, "PPK-R10")
 SOLN = proc_pos("EML", 9, 1, "PPK-R10")
+
+
 ```
 # Read Work So Far
 
@@ -3022,6 +3027,11 @@ xl_page = "FINAL RESULTS"
 xl_rng = "A1:O200"
 
 
+TBC_results = readxl::read_excel(xl_ffn, sheet = xl_page, range = xl_rng) %>% 
+  filter(str_detect(MET, "TBC"))
+
+TBC_results_ffn = paste0(datadir, "TBC_results.csv")
+write_csv(TBC_results, TBC_results_ffn)
 
 D = readxl::read_excel(xl_ffn, sheet = xl_page, range = xl_rng) %>% 
   left_join(pegloctab, by = c("PEG"="PegNum")) %>% 
@@ -3093,9 +3103,11 @@ if (recollate){
   
   PPK_ALL_COLLATED = PPK_DNVK_COLLATED %>% 
     bind_rows(PPK_WRPA_COLLATED) %>% 
-    bind_rows(PPK_R10_COLLATED)
+    bind_rows(PPK_R10_COLLATED)%>% 
+    mutate(
+      OCC_corr = ifelse(OCC<4, OCC, OCC-1))
   
-  write_csv(PPK_ALL_COLLATED, paste0(datadir, "PPK_ALL_COLL.csv"))
+  write_csv(PPK_ALL_COLLATED, paste0(datadir, "PPK_ALL_COLL.csv")) 
   
 } else {
   
@@ -3108,23 +3120,6 @@ if (recollate){
   
   
 }
-
-
-
-
-
-
-
-```
-
-#=====================================
-#   -----------------------------------------------------------------
-# ANALYSE THE FINAL COLLATED DATA 
-#   -----------------------------------------------------------------
-#=====================================
-
-
-```{r}
 
 PPK_ALL_COLLATED = read_csv(paste0(datadir, "PPK_ALL_COLL.csv"))
 
@@ -3163,6 +3158,23 @@ PPK_ALL_COLLATED_R10 = PPK_ALL_COLLATED %>%
   )
 
 
+
+
+
+
+```
+
+#=====================================
+#   -----------------------------------------------------------------
+# ANALYSE THE FINAL COLLATED DATA 
+#   -----------------------------------------------------------------
+#=====================================
+
+
+```{r}
+
+
+
 ```
 
 # ~~~~~~~~~~~~~~~~ #
@@ -3188,7 +3200,7 @@ g = g + geom_vline(aes(xintercept = 0), color = "red", linetype = "dashed", alph
 g = g + geom_circle(aes(x0 = 0, y0=0, r=1), color = "red", linetype = "dashed", alpha = alp)
 g = g + geom_circle(aes(x0 = 0, y0=0, r=0.5), color = "red", linetype = "dashed", alpha = alp)
 
-g = g+ geom_point(aes(DEL_LON_avg , DEL_LAT_avg , color = RECEIVER), size = 2) + facet_wrap(~PEG_LAB, nrow = 3)
+g = g+ geom_point(aes(DEL_LON_float_avg , DEL_LAT_float_avg , color = RECEIVER), size = 2) + facet_wrap(~PEG_LAB, nrow = 3)
 g = g + labs(x = expression(paste(Delta," Easting (m)")),y = expression(paste(Delta," Northing (m)")))
 
 g = g + scale_color_manual(values = cbbPalette)
@@ -3282,13 +3294,118 @@ if (specdim){
 ```
 
 # ~~~~~~~~~~~~~~~~ #
-# Figure 4003 -  PPK-DNVK-Accuracy-for-each-occupation-by-receiver
+# Figure 4003 -  PPK-DNVK-Accuracy-for-each-occupation-by-receiver-float
 # ~~~~~~~~~~~~~~~~ #
 
 ```{r}
 
 fignum = 4003
-figdesc = "PPK-DNVK-Accuracy-for-each-occupation-by-receiver"
+figdesc = "PPK-DNVK-Accuracy-for-each-occupation-by-receiver-float"
+figfmt = "png"
+fig_ffn = paste0(plotdir, fignum,"-", figdesc, ".", figfmt)
+
+alp = .5
+
+axlim = 2.01
+
+#replace the R10 data that was processed with Emlid Stuidio with the R10 data processed with TBC
+TBC_results_ffn = paste0(datadir, "TBC_results.csv")
+
+TBC_results = read_csv(TBC_results_ffn) %>% 
+  filter(str_detect(MET, "PPK-DNVK")) %>% 
+  dplyr::select(
+    MET_TBC = MET,
+    REC_TBC = REC,
+    OCC_TBC = OCC,
+    PEG_TBC = PEG, 
+    LON_TBC = EASTING, 
+    LAT_TBC = NORTHING,
+    M_ACC_TBC = `ACC FLOAT`,
+    M_PREC_TBC = `PREC FLOAT`) %>% 
+  mutate(
+    join_key = paste0(toupper(REC_TBC),"-OCC",OCC_TBC,"-P", PEG_TBC)
+  )
+
+PPK_ALL_COLLATED_DNVK_mdf = PPK_ALL_COLLATED_DNVK %>% 
+  mutate(
+    join_key = paste0(toupper(REC),"-OCC",OCC,"-P", PEG)
+  ) %>% 
+  left_join(TBC_results, by = "join_key") %>% 
+  mutate(
+    DEL_LON_TBC = LON_TBC - KNOWN_POS_X,
+    DEL_LAT_TBC = LAT_TBC - KNOWN_POS_Y,
+    DEL_LON_2_plot = ifelse(is.na(DEL_LON_TBC), DEL_LON_float_avg,DEL_LON_TBC ),
+    DEL_LAT_2_plot = ifelse(is.na(DEL_LAT_TBC), DEL_LAT_float_avg,DEL_LAT_TBC ),
+    M_PREC_2_plot = ifelse(is.na(M_PREC_TBC ), M_PREC_float,M_PREC_TBC  ))
+
+PPK_ALL_COLLATED_DNVK_mdf$DEL_LON_TBC
+
+
+
+
+
+names(PPK_ALL_COLLATED_DNVK_mdf)
+
+
+
+PPK_ALL_COLLATED_DNVK_mdf_2_plot = PPK_ALL_COLLATED_DNVK_mdf %>% 
+  dplyr::select(DEL_LON_2_plot, DEL_LAT_2_plot, M_PREC_2_plot, OCC_corr, RECEIVER)
+
+g = ggplot(PPK_ALL_COLLATED_DNVK_mdf_2_plot) 
+g = g + lims(x = c(-axlim,axlim), y = c(-axlim,axlim))
+g = g + geom_hline(aes(yintercept = 0), color = "red", linetype = "dashed", alpha = alp)
+g = g + geom_vline(aes(xintercept = 0), color = "red", linetype = "dashed", alpha = alp)
+g = g + geom_circle(aes(x0 = 0, y0=0, r=1), color = "red", linetype = "dashed", alpha = alp)
+g = g + geom_circle(aes(x0 = 0, y0=0, r=0.5), color = "red", linetype = "dashed", alpha = alp)
+
+
+g = g + geom_circle(aes(x0 = DEL_LON_2_plot, y0=DEL_LAT_2_plot, r=M_PREC_2_plot, fill = as.character(OCC_corr)), linetype=0 , alpha = .5)
+
+
+g = g+ geom_point(aes(DEL_LON_2_plot , DEL_LAT_2_plot, color = as.character(OCC_corr) ), size = 2) + facet_wrap(~RECEIVER, nrow = 2)
+g = g + labs(x = expression(paste(Delta," Easting (m)")),y = expression(paste(Delta," Northing (m)")))
+
+g = g + scale_color_manual(values = occPalette)
+g = g + scale_fill_manual(values = occPalette)
+
+
+g = g + guides(color=guide_legend("Occupation \nnumber",ncol=2), fill = "none")
+
+g = g +coord_fixed(ratio=1)
+g = g + theme_bw() +
+  theme(
+    strip.background =element_rect(fill="white"),
+    axis.title =  element_text(size = 12),
+    legend.position = c(0.82, .23),
+    plot.margin=grid::unit(c(0,0,0,0), "mm"))
+# axis.title = element_text(size = 16))
+g
+
+WD = 14
+HT = 2/3*WD
+
+specdim = T
+
+
+
+
+if (specdim){
+  ggsave(filename = fig_ffn, plot = g, width = WD, height = HT, units = "cm", bg = "white")
+} else {
+  ggsave(filename = fig_ffn, plot = g,  units = "cm", bg = "white")
+}
+
+
+```
+
+~~~~~~~~~~~~~~~~ #
+# Figure 4004 -  PPK-DNVK-Accuracy-for-each-occupation-by-receiver-fixed
+# ~~~~~~~~~~~~~~~~ #
+
+```{r}
+
+fignum = 4004
+figdesc = "PPK-DNVK-Accuracy-for-each-occupation-by-receiver-fixed"
 figfmt = "png"
 fig_ffn = paste0(plotdir, fignum,"-", figdesc, ".", figfmt)
 
@@ -3304,34 +3421,35 @@ g = g + geom_circle(aes(x0 = 0, y0=0, r=1), color = "red", linetype = "dashed", 
 g = g + geom_circle(aes(x0 = 0, y0=0, r=0.5), color = "red", linetype = "dashed", alpha = alp)
 
 
-g = g + geom_circle(aes(x0 = DEL_LON_avg, y0=DEL_LAT_avg, r=M_PREC, fill = as.character(OCC)), linetype=0 , alpha = .5)
+g = g + geom_circle(aes(x0 = DEL_LON_fixed_avg, y0=DEL_LAT_fixed_avg, r=M_PREC, fill = as.character(OCC_corr)), linetype=0 , alpha = .5)
 
 
-g = g+ geom_point(aes(DEL_LON_avg , DEL_LAT_avg, color = as.character(OCC) ), size = 2) + facet_wrap(~RECEIVER, nrow = 2)
+g = g+ geom_point(aes(DEL_LON_fixed_avg , DEL_LAT_fixed_avg, color = as.character(OCC_corr) ), size = 2) + facet_wrap(~RECEIVER, nrow = 2)
 g = g + labs(x = expression(paste(Delta," Easting (m)")),y = expression(paste(Delta," Northing (m)")))
 
-g = g + scale_color_manual(values = pegPalette)
-g = g + scale_fill_manual(values = pegPalette)
+g = g + scale_color_manual(values = occPalette)
+g = g + scale_fill_manual(values = occPalette)
 
 
-g = g + guides(color=guide_legend("Occupation \nnumber"), fill = "none")
+g = g + guides(color=guide_legend("Occupation \nnumber",ncol=2), fill = "none")
 
 g = g +coord_fixed(ratio=1)
 g = g + theme_bw() +
   theme(
     strip.background =element_rect(fill="white"),
     axis.title =  element_text(size = 12),
-    legend.position = "bottom")
+    legend.position = c(0.82, .23),
+    plot.margin=grid::unit(c(0,0,0,0), "mm"))
 # axis.title = element_text(size = 16))
 g
 
-WD = 28
-HT = 8/18*28
+WD = 14
+HT = 2/3*WD
 
-specdim = F
+specdim = T
 
 
-ggsave(filename = fig_ffn, plot = g, width = WD, height = HT, units = "cm", bg = "white")
+
 
 if (specdim){
   ggsave(filename = fig_ffn, plot = g, width = WD, height = HT, units = "cm", bg = "white")
@@ -3460,6 +3578,114 @@ if (specdim){
 
 ```
 
+
+# ~~~~~~~~~~~~~~~~ #
+# Figure 5003 -  PPK-WRPA-Accuracy-for-each-occupation-by-receiver
+# ~~~~~~~~~~~~~~~~ #
+
+```{r}
+
+fignum = 5003
+figdesc = "PPK-WRPA-Accuracy-for-each-occupation-by-receiver"
+figfmt = "png"
+fig_ffn = paste0(plotdir, fignum,"-", figdesc, ".", figfmt)
+
+alp = .3
+
+axlim = 2.01
+
+#replace the R10 data that was processed with Emlid Stuidio with the R10 data processed with TBC
+TBC_results_ffn = paste0(datadir, "TBC_results.csv")
+
+TBC_results = read_csv(TBC_results_ffn) %>% 
+  filter(str_detect(MET, "PPK-WRPA")) %>% 
+  dplyr::select(
+    MET_TBC = MET,
+    REC_TBC = REC,
+    OCC_TBC = OCC,
+    PEG_TBC = PEG, 
+    LON_TBC = EASTING, 
+    LAT_TBC = NORTHING,
+    M_ACC_TBC = `ACC FLOAT`,
+    M_PREC_TBC = `PREC FLOAT`) %>% 
+  mutate(
+    join_key = paste0(toupper(REC_TBC),"-OCC",OCC_TBC,"-P", PEG_TBC)
+  )
+
+PPK_ALL_COLLATED_WRPA_mdf = PPK_ALL_COLLATED_WRPA %>% 
+  mutate(
+    join_key = paste0(toupper(REC),"-OCC",OCC,"-P", PEG)
+  ) %>% 
+  left_join(TBC_results, by = "join_key") %>% 
+  mutate(
+    DEL_LON_TBC = LON_TBC - KNOWN_POS_X,
+    DEL_LAT_TBC = LAT_TBC - KNOWN_POS_Y,
+    DEL_LON_2_plot = ifelse(is.na(DEL_LON_TBC), DEL_LON_float_avg,DEL_LON_TBC ),
+    DEL_LAT_2_plot = ifelse(is.na(DEL_LAT_TBC), DEL_LAT_float_avg,DEL_LAT_TBC ),
+    M_PREC_2_plot = ifelse(is.na(M_PREC_TBC ), M_PREC_float,M_PREC_TBC  ))
+
+PPK_ALL_COLLATED_WRPA_mdf$DEL_LON_TBC
+
+
+
+
+
+names(PPK_ALL_COLLATED_WRPA_mdf)
+
+
+
+PPK_ALL_COLLATED_WRPA_mdf_2_plot = PPK_ALL_COLLATED_WRPA_mdf %>% 
+  dplyr::select(DEL_LON_2_plot, DEL_LAT_2_plot, M_PREC_2_plot, OCC_corr, RECEIVER)
+
+
+g = ggplot(PPK_ALL_COLLATED_WRPA_mdf_2_plot) 
+g = g + lims(x = c(-axlim,axlim), y = c(-axlim,axlim))
+g = g + geom_hline(aes(yintercept = 0), color = "red", linetype = "dashed", alpha = alp)
+g = g + geom_vline(aes(xintercept = 0), color = "red", linetype = "dashed", alpha = alp)
+g = g + geom_circle(aes(x0 = 0, y0=0, r=1), color = "red", linetype = "dashed", alpha = alp)
+g = g + geom_circle(aes(x0 = 0, y0=0, r=0.5), color = "red", linetype = "dashed", alpha = alp)
+
+g = g + geom_circle(aes(x0 = DEL_LON_2_plot, y0=DEL_LAT_2_plot, r=M_PREC_2_plot, fill = as.character(OCC_corr)), linetype=0 , alpha = .5)
+
+
+g = g+ geom_point(aes(DEL_LON_2_plot , DEL_LAT_2_plot, color = as.character(OCC_corr) ), size = 2) + facet_wrap(~RECEIVER, nrow = 2)
+g = g + labs(x = expression(paste(Delta," Easting (m)")),y = expression(paste(Delta," Northing (m)")))
+
+g = g + scale_color_manual(values = occPalette)
+g = g + scale_fill_manual(values = occPalette)
+
+
+g = g + guides(color=guide_legend("Occupation \nnumber",ncol=2), fill = "none")
+
+g = g +coord_fixed(ratio=1)
+g = g + theme_bw() +
+  theme(
+    strip.background =element_rect(fill="white"),
+    axis.title =  element_text(size = 12),
+    legend.position = c(0.82, .23),
+    plot.margin=grid::unit(c(0,0,0,0), "mm"))
+# axis.title = element_text(size = 16))
+g
+
+WD = 14
+HT = 2/3*WD
+
+specdim = T
+
+
+
+
+if (specdim){
+  ggsave(filename = fig_ffn, plot = g, width = WD, height = HT, units = "cm", bg = "white")
+} else {
+  ggsave(filename = fig_ffn, plot = g,  units = "cm", bg = "white")
+}
+
+
+```
+
+
+
 # ~~~~~~~~~~~~~~~~ #
 # Figure 6001 -  PPK-WRPA Accuracy-vs-Rcvr-by-Peg
 # ~~~~~~~~~~~~~~~~ #
@@ -3573,7 +3799,219 @@ if (specdim){
 }
 
 
+
+
 ```
+
+# ~~~~~~~~~~~~~~~~ #
+# Table 6003 -  PPK-R10-Accuracy-for-each-occupation-by-receiver
+# ~~~~~~~~~~~~~~~~ #
+
+```{r}
+
+
+PPK_ALL_COLLATED_SMY = PPK_ALL_COLLATED %>% 
+  filter(REC!="KIS") %>% 
+  mutate(CorrectionSource = case_when(
+    MET=="PPK-DNVK" ~ "CORS-DNVK",
+    MET=="PPK-WRPA" ~ "CORS-WRPA",
+    MET=="PPK-R10" ~ "CORS-R10",
+  )) %>% 
+  dplyr::select(OCC_UID, RECEIVER,CorrectionSource, OCC, OCC_corr, PEG, M_ACC_fixed, M_PREC_fixed, M_ACC_float, M_PREC_float) %>% 
+  group_by(RECEIVER, CorrectionSource) %>% 
+  mutate(
+    M_PREC_fixed_sq = M_PREC_fixed^2,
+    M_PREC_float_sq = M_PREC_float^2) %>% 
+  summarise(
+    M_ACC_fixed = mean(M_ACC_fixed , na.rm = T),
+    M_ACC_float = mean(M_ACC_float , na.rm = T),
+    M_PREC_fixed_RMS = sqrt(sum(M_PREC_fixed , na.rm = T)),
+    M_PREC_fixed_smsq = sum(sum(M_PREC_fixed , na.rm = T))
+  ) 
+
+
+write_csv(PPK_ALL_COLLATED_SMY, paste0(datadir, "PPK_ALL_COLLATED_SMY.csv"))
+
+
+```
+
+
+
+# ~~~~~~~~~~~~~~~~ #
+# Figure 6003 -  PPK-R10-Accuracy-for-each-occupation-by-receiver
+# ~~~~~~~~~~~~~~~~ #
+
+```{r}
+
+fignum = 6003
+figdesc = "PPK-R10-Accuracy-for-each-occupation-by-receiver"
+figfmt = "png"
+fig_ffn = paste0(plotdir, fignum,"-", figdesc, ".", figfmt)
+
+alp = .3
+
+axlim = 1.5
+
+
+
+
+#replace the R10 data that was processed with Emlid Stuidio with the R10 data processed with TBC
+TBC_results_ffn = paste0(datadir, "TBC_results.csv")
+
+TBC_results = read_csv(TBC_results_ffn) %>% 
+  filter(str_detect(MET, "PPK-R10")) %>% 
+  dplyr::select(
+    MET_TBC = MET,
+    REC_TBC = REC,
+    OCC_TBC = OCC,
+    PEG_TBC = PEG, 
+    LON_TBC = EASTING, 
+    LAT_TBC = NORTHING,
+    M_ACC_TBC = `ACC FLOAT`,
+    M_PREC_TBC = `PREC FLOAT`) %>% 
+  mutate(
+    join_key = paste0(toupper(REC_TBC),"-OCC",OCC_TBC,"-P", PEG_TBC)
+  ) %>% 
+  filter(OCC_TBC != 3)
+
+PPK_ALL_COLLATED_R10_mdf = PPK_ALL_COLLATED_R10 %>% 
+  mutate(
+    join_key = paste0(toupper(REC),"-OCC",OCC,"-P", PEG)
+  ) %>% 
+  left_join(TBC_results, by = "join_key") %>% 
+  mutate(
+    DEL_LON_TBC = LON_TBC - KNOWN_POS_X,
+    DEL_LAT_TBC = LAT_TBC - KNOWN_POS_Y,
+    DEL_LON_2_plot = ifelse(is.na(DEL_LON_TBC), DEL_LON_float_avg,DEL_LON_TBC ),
+    DEL_LAT_2_plot = ifelse(is.na(DEL_LAT_TBC), DEL_LAT_float_avg,DEL_LAT_TBC ),
+    M_PREC_2_plot_tmp = ifelse(is.na(M_PREC_TBC ), M_PREC_float,M_PREC_TBC  )) %>% 
+  mutate(
+    M_PREC_2_plot = ifelse(OCC==7 & REC=="R10-Rover", NA, M_PREC_2_plot_tmp),
+    OCC_corr = ifelse(OCC<4,OCC,OCC-1)     )
+
+
+PPK_ALL_COLLATED_R10_mdf %>% dplyr::select(join_key,REC,M_PREC_2_plot) %>% filter(REC=="R10-Rover")
+
+names(PPK_ALL_COLLATED_R10_mdf)
+
+PPK_ALL_COLLATED_R10_mdf$M_PREC_2_plot[which(PPK_ALL_COLLATED_R10_mdf$OCC==7 & PPK_ALL_COLLATED_R10_mdf$REC=="R10-Rover")] = 0
+
+
+PPK_ALL_COLLATED_R10_mdf_2_plot = PPK_ALL_COLLATED_R10_mdf %>% 
+  dplyr::select(DEL_LON_2_plot, DEL_LAT_2_plot, M_PREC_2_plot, OCC_corr, RECEIVER)
+
+g = ggplot(PPK_ALL_COLLATED_R10_mdf_2_plot) 
+g = g + lims(x = c(-axlim,axlim), y = c(-axlim,axlim))
+g = g + geom_hline(aes(yintercept = 0), color = "red", linetype = "dashed", alpha = alp)
+g = g + geom_vline(aes(xintercept = 0), color = "red", linetype = "dashed", alpha = alp)
+g = g + geom_circle(aes(x0 = 0, y0=0, r=1), color = "red", linetype = "dashed", alpha = alp)
+g = g + geom_circle(aes(x0 = 0, y0=0, r=0.5), color = "red", linetype = "dashed", alpha = alp)
+
+g = g + geom_circle(aes(x0 = DEL_LON_2_plot, y0=DEL_LAT_2_plot, r=M_PREC_2_plot, fill = as.character(OCC_corr)), linetype=0 , alpha = .5)
+
+
+g = g+ geom_point(aes(DEL_LON_2_plot , DEL_LAT_2_plot, color = as.character(OCC_corr) ), size = 2) + facet_wrap(~RECEIVER, nrow = 2)
+
+g = g + labs(x = expression(paste(Delta," Easting (m)")),y = expression(paste(Delta," Northing (m)")))
+
+g = g + scale_color_manual(values = occPalette)
+g = g + scale_fill_manual(values = occPalette)
+
+
+g = g + guides(color=guide_legend("Occupation \nnumber",ncol=2), fill = "none")
+
+g = g +coord_fixed(ratio=1)
+g = g + theme_bw() +
+  theme(
+    strip.background =element_rect(fill="white"),
+    axis.title =  element_text(size = 12),
+    legend.position = c(0.82, .23),
+    plot.margin=grid::unit(c(0,0,0,0), "mm"))
+# axis.title = element_text(size = 16))
+g
+
+WD = 14
+HT = 2/3*WD
+
+specdim = T
+
+
+
+
+if (specdim){
+  ggsave(filename = fig_ffn, plot = g, width = WD, height = HT, units = "cm", bg = "white")
+} else {
+  ggsave(filename = fig_ffn, plot = g,  units = "cm", bg = "white")
+}
+
+
+```
+
+
+
+# ~~~~~~~~~~~~~~~~ #
+# Figure 6004 -  PPK-R10-Accuracy-for-each-occupation-by-receiver-fixed
+# ~~~~~~~~~~~~~~~~ #
+
+```{r}
+
+fignum = 6003
+figdesc = "PPK-R10-Accuracy-for-each-occupation-by-receiver-fixed"
+figfmt = "png"
+fig_ffn = paste0(plotdir, fignum,"-", figdesc, ".", figfmt)
+
+alp = .3
+
+axlim = 1.5
+
+g = ggplot(PPK_ALL_COLLATED_R10_filt) 
+g = g + lims(x = c(-axlim,axlim), y = c(-axlim,axlim))
+g = g + geom_hline(aes(yintercept = 0), color = "red", linetype = "dashed", alpha = alp)
+g = g + geom_vline(aes(xintercept = 0), color = "red", linetype = "dashed", alpha = alp)
+g = g + geom_circle(aes(x0 = 0, y0=0, r=1), color = "red", linetype = "dashed", alpha = alp)
+g = g + geom_circle(aes(x0 = 0, y0=0, r=0.5), color = "red", linetype = "dashed", alpha = alp)
+
+
+g = g + geom_circle(aes(x0 = DEL_LON_avg_float, y0=DEL_LAT_avg_float, r=M_PREC, fill = as.character(OCC_corr)), linetype=0 , alpha = .5)
+
+
+g = g+ geom_point(aes(DEL_LON_avg_float , DEL_LAT_avg_float, color = as.character(OCC_corr) ), size = 2) + facet_wrap(~RECEIVER, nrow = 2)
+g = g + labs(x = expression(paste(Delta," Easting (m)")),y = expression(paste(Delta," Northing (m)")))
+
+g = g + scale_color_manual(values = occPalette)
+g = g + scale_fill_manual(values = occPalette)
+
+
+g = g + guides(color=guide_legend("Occupation \nnumber",ncol=2), fill = "none")
+
+g = g +coord_fixed(ratio=1)
+g = g + theme_bw() +
+  theme(
+    strip.background =element_rect(fill="white"),
+    axis.title =  element_text(size = 12),
+    legend.position = c(0.82, .23),
+    plot.margin=grid::unit(c(0,0,0,0), "mm"))
+# axis.title = element_text(size = 16))
+g
+
+WD = 14
+HT = 2/3*WD
+
+specdim = T
+
+
+
+
+if (specdim){
+  ggsave(filename = fig_ffn, plot = g, width = WD, height = HT, units = "cm", bg = "white")
+} else {
+  ggsave(filename = fig_ffn, plot = g,  units = "cm", bg = "white")
+}
+
+
+```
+
+
 
 
 # Examination of precision and accuracy for different PPK methods
@@ -3628,6 +4066,8 @@ for (i in Folder_List){
 }
 
 
+
+
 ```
 
 
@@ -3637,6 +4077,7 @@ for (i in Folder_List){
 # Read all the PPP pdf files
 
 ```{r}
+
 #read the OCC_TBL - the list of all the occupations
 OCC_TBL_ffn = paste0(datadir, "OCC_TBL.RDS")
 OCC_TBL = readRDS(OCC_TBL_ffn) 
@@ -3670,6 +4111,7 @@ for (i in 1:nrow(OCC_TBL_filt)){
   } else{
     PPP_results_COLL = PPP_results_COLL %>% bind_rows(PPP_results)
   }
+  
   
   
 }
@@ -3708,7 +4150,7 @@ plot each peg as a panel
 
 
 # ~~~~~~~~~~~~~~~~ #
-# Figure 3001 -  Accuracy-vs-Rcvr-by-Method
+# Figure 3001 -  PPP - Accuracy of Receiver - split by pegs"
 # ~~~~~~~~~~~~~~~~ #
 
 ```{r}
@@ -3778,17 +4220,160 @@ g
 ```
 
 
+# ~~~~~~~~~~~~~~~~ #
+# Figure 3003 -  PPP-Accuracy-for-each-occupation-by-receiver-float
+# ~~~~~~~~~~~~~~~~ #
+
+```{r}
+
+fignum = 3003
+figdesc = "PPK-DNVK-Accuracy-for-each-occupation-by-receiver-float"
+figfmt = "png"
+fig_ffn = paste0(plotdir, fignum,"-", figdesc, ".", figfmt)
+
+alp = .5
+
+axlim = 2.51
+
+draw_ellipse = F
+# PPP_RESULTS_FINAL_VAL_2_plot
+
+names(PPK_ALL_COLLATED_DNVK_mdf)
+
+PPP_RESULTS_FINAL_VAL_2_plot = PPP_RESULTS_FINAL_VAL %>% 
+  mutate(OCC_corr = ifelse(OCC<4, OCC,OCC-1),
+         PREC =  `PREC ALL` * 2) %>% 
+  dplyr::select(OCC_corr, RECEIVER, DEL_X, DEL_Y, PREC , semi_maj , semi_min=semi_muin, sem_maj_angle)
+
+
+
+g = ggplot(PPP_RESULTS_FINAL_VAL_2_plot) 
+g = g + lims(x = c(-axlim,axlim), y = c(-axlim,axlim))
+g = g + geom_hline(aes(yintercept = 0), color = "red", linetype = "dashed", alpha = alp)
+g = g + geom_vline(aes(xintercept = 0), color = "red", linetype = "dashed", alpha = alp)
+g = g + geom_circle(aes(x0 = 0, y0=0, r=1), color = "red", linetype = "dashed", alpha = alp)
+g = g + geom_circle(aes(x0 = 0, y0=0, r=0.5), color = "red", linetype = "dashed", alpha = alp)
+
+
+if (draw_ellipse){
+  
+  g = plot_ellipse(g,XC =  DEL_X, YC = DEL_Y, A = semi_maj, B = semi_min, THETA = sem_maj_angle)
+} else {
+  g = g + geom_circle(aes(x0 = DEL_X, y0=DEL_Y, r=PREC, fill = as.character(OCC_corr)), linetype=0 , alpha = .5)  
+}
+
+
+
+g = g+ geom_point(aes(DEL_X , DEL_Y, color = as.character(OCC_corr) ), size = 2) + facet_wrap(~RECEIVER, nrow = 2)
+g = g + labs(x = expression(paste(Delta," Easting (m)")),y = expression(paste(Delta," Northing (m)")))
+
+g = g + scale_color_manual(values = occPalette)
+g = g + scale_fill_manual(values = occPalette)
+
+
+g = g + guides(color=guide_legend("Occupation \nnumber",ncol=2), fill = "none")
+
+g = g +coord_fixed(ratio=1)
+g = g + theme_bw() +
+  theme(
+    strip.background =element_rect(fill="white"),
+    axis.title =  element_text(size = 12),
+    legend.position = c(0.82, .23),
+    plot.margin=grid::unit(c(0,0,0,0), "mm"))
+# axis.title = element_text(size = 16))
+g
+
+WD = 14
+HT = 2/3*WD
+
+specdim = T
+
+
+
+
+if (specdim){
+  ggsave(filename = fig_ffn, plot = g, width = WD, height = HT, units = "cm", bg = "white")
+} else {
+  ggsave(filename = fig_ffn, plot = g,  units = "cm", bg = "white")
+}
+
+
+```
+
 
 # ~~~~~~~~~~~~~~~~ #
-# Figure 3003-  Accuracy-for-each-peg-by-recevier
+# Figure 3004 -  PPP--Accuracy-for-each-occupation-by-receiver
+# ~~~~~~~~~~~~~~~~ #
+
+```{r}
+
+fignum = 3004
+figdesc = "PPP-Accuracy-for-each-occupation-by-receiver"
+figfmt = "png"
+fig_ffn = paste0(plotdir, fignum,"-", figdesc, ".", figfmt)
+
+alp = .3
+
+axlim = 2.01
+
+g = ggplot(PPP_RESULTS_FINAL_VAL) 
+g = g + lims(x = c(-axlim,axlim), y = c(-axlim,axlim))
+g = g + geom_hline(aes(yintercept = 0), color = "red", linetype = "dashed", alpha = alp)
+g = g + geom_vline(aes(xintercept = 0), color = "red", linetype = "dashed", alpha = alp)
+g = g + geom_circle(aes(x0 = 0, y0=0, r=1), color = "red", linetype = "dashed", alpha = alp)
+g = g + geom_circle(aes(x0 = 0, y0=0, r=0.5), color = "red", linetype = "dashed", alpha = alp)
+
+
+# g = g + geom_circle(aes(x0 = DEL_X, y0=DEL_Y, r=M_PREC, fill = as.character(OCC)), linetype=0 , alpha = .5)
+
+
+g = g+ geom_point(aes(DEL_X , DEL_Y, color = as.character(OCC) ), size = 2) + facet_wrap(~RECEIVER, nrow = 2)
+g = g + labs(x = expression(paste(Delta," Easting (m)")),y = expression(paste(Delta," Northing (m)")))
+
+g = g + scale_color_manual(values = pegPalette)
+g = g + scale_fill_manual(values = pegPalette)
+
+
+g = g + guides(color=guide_legend("Occupation \nnumber"), fill = "none")
+
+g = g +coord_fixed(ratio=1)
+g = g + theme_bw() +
+  theme(
+    strip.background =element_rect(fill="white"),
+    axis.title =  element_text(size = 12),
+    legend.position = "bottom")
+# axis.title = element_text(size = 16))
+g
+
+WD = 28
+HT = 8/18*28
+
+specdim = F
+
+
+ggsave(filename = fig_ffn, plot = g, width = WD, height = HT, units = "cm", bg = "white")
+
+if (specdim){
+  ggsave(filename = fig_ffn, plot = g, width = WD, height = HT, units = "cm", bg = "white")
+} else {
+  ggsave(filename = fig_ffn, plot = g,  units = "cm", bg = "white")
+}
+
+
+```
+
+
+
+# ~~~~~~~~~~~~~~~~ #
+# Figure 3005-  Accuracy-for-each-peg-by-recevier
 # ~~~~~~~~~~~~~~~~ #
 
 plot each receiver as a panel
 
 ```{r}
 
-fignum = 3003
-figdesc = "Accuracy-for-each-peg-by-recevier"
+fignum = 3005
+figdesc = "PPP-Accuracy-for-each-peg-by-recevier"
 figfmt = "png"
 fig_ffn = paste0(plotdir, fignum,"-", figdesc, ".", figfmt)
 
@@ -3829,6 +4414,7 @@ ggsave(filename = fig_ffn, plot = g, units = "cm", bg = "white")
 
 
 
+
 ```{r}
 PPP_RESULTS_FINAL_ffn = paste0(datadir, "PPP_RESULTS_FINAL.csv")
 
@@ -3843,7 +4429,7 @@ write_csv(PPP_RESULTS_FINAL, PPP_RESULTS_FINAL_ffn )
 
 
 
-# FINAL COLLATE
+# FINAL COLLATE (not any more!)
 
 ```{r}
 
@@ -3941,7 +4527,7 @@ for (i in 1:(length(HH_VEC)-2)){
   print(paste(HH_VEC[i], MM_VEC[i]))
   csoln = proc_pos_seg("R10-ROVER", 3,1,"PPK-DNVK", HH_VEC[i], MM_VEC[i])
   csoln_df = t(csoln) %>% as_tibble() %>% 
-   mutate(
+    mutate(
       SEG = paste0(HH_VEC[i], MM_VEC[i]),
       REC = "R10-ROVER") 
   if (i==1){
@@ -4031,7 +4617,26 @@ ggsave(filename = fig_ffn, plot = whole_plot,  units = "cm", bg = "white")
 ## 2. Get stats for fixed only2
 
 
+
 ```{r}
+
+
+PPK_ALL_COLLATED = read_csv(paste0(datadir, "PPK_ALL_COLL.csv"))
+
+Float_Solutions = PPK_ALL_COLLATED %>% 
+  dplyr::select(REC, RECEIVER, OCC, OCC_corr, PEG, MET, M_ACC = M_ACC_float, M_PREC = M_PREC_float) %>% 
+  mutate(soln_type = "float")
+
+Fixed_Solutions = PPK_ALL_COLLATED %>% 
+  dplyr::select(REC, RECEIVER, OCC, OCC_corr, PEG, MET, M_ACC = M_ACC_fixed, M_PREC = M_PREC_fixed) %>% 
+  mutate(soln_type = "fixed")
+
+Float_and_Fixed = Float_Solutions %>% 
+  bind_rows(Fixed_Solutions) %>% 
+  filter(REC != "KIS")
+
+
+
 
 
 
@@ -4041,6 +4646,94 @@ ggsave(filename = fig_ffn, plot = whole_plot,  units = "cm", bg = "white")
 
 ```
 
+
+# ~~~~~~~~~~~~~~~~ #
+# Figure 9012 -  Fixed-v-float
+# ~~~~~~~~~~~~~~~~ #
+
+```{r}
+
+fignum = 9012
+figdesc = "Fixed-v-float"
+figfmt = "png"
+fig_ffn = paste0(plotdir, fignum,"-", figdesc, ".", figfmt)
+
+g = ggplot(Float_and_Fixed %>% filter(REC != "KIS") )
+
+dodge_dist = .2
+
+g = g + geom_point(aes(OCC_corr, M_ACC  , color = soln_type,size = M_PREC), position = position_dodge(width = dodge_dist)) + facet_grid(MET~REC, scales = "free_x")
+
+g
+
+
+g = g + labs(x = "GNSS Receiver", y = "Positional accuracy (m)", color = "CORS Station (baseline length)")
+
+g = g + theme_bw() + theme(axis.text.x = element_text(angle = 90), legend.position = "bottom")
+g
+
+
+ggsave(filename = fig_ffn, plot = g,  units = "cm", bg = "white")
+
+
+```
+
+
+# ~~~~~~~~~~~~~~~~ #
+# Figure 9022 -  Fixed-v-float
+# ~~~~~~~~~~~~~~~~ #
+
+```{r}
+
+fignum = 9022
+figdesc = "Fixed-v-float"
+figfmt = "png"
+fig_ffn = paste0(plotdir, fignum,"-", figdesc, ".", figfmt)
+
+
+Float_and_Fixed_smy = Float_and_Fixed %>% group_by(REC, MET, soln_type) %>% 
+  mutate(
+    M_PREC_sq = M_PREC^2,
+    Correction = case_when(
+      MET=="PPK-DNVK" ~ "CORS-DNVK \n(31 km)",
+      MET=="PPK-WRPA" ~ "CORS-WRPA \n(83 km)",
+      MET=="PPK-R10" ~ "Local base station \n(0.6 km)",
+    )
+  ) %>% 
+  summarise(
+    OCC_corr = first(OCC_corr),
+    Correction = first(Correction),
+    RECEIVER = first(RECEIVER),
+    M_ACC_mean = mean(M_ACC, na.rm = T),
+    M_PREC_prop = sqrt(sum(M_PREC_sq, na.rm = T))
+  )
+
+g = ggplot(Float_and_Fixed_smy )
+
+dodge_dist = .2
+
+g = g + geom_point(aes(RECEIVER, M_ACC_mean  , color = soln_type), position = position_dodge(width = dodge_dist)) + facet_grid(Correction~., scales = "free_x")
+
+g = g + geom_errorbar(aes(x=RECEIVER, ymin = M_ACC_mean - M_PREC_prop, ymax = M_ACC_mean + M_PREC_prop  , color = soln_type), position = position_dodge(width = dodge_dist), width = .2) + facet_grid(Correction~., scales = "free_x")
+
+axlim = 3
+
+g = g + lims(y = c(-
+                     1.8,axlim))
+
+
+g = g + labs(x = "GNSS Receiver", y = "Positional accuracy (m)", color = "Solution type")
+
+g = g + theme_bw() + theme(axis.text.x = element_text(angle = 90), legend.position = "bottom", strip.background =element_rect(fill="white"))
+g
+
+WD=14
+HT = 24/22 *WD
+
+ggsave(filename = fig_ffn, plot = g,  width = WD,height = HT,units = "cm", bg = "white")
+
+
+```
 
 ## 3. What kind of results do we get without differential correction?3
 
@@ -4163,19 +4856,52 @@ proc_cf_dn = paste0(datadir, "RTKLIB_vs_EmlidStudio/")
 POS_ffn_EMLSTU = paste0(proc_cf_dn,"JVD-OCC6-P3-PPK-DNVK.pos")
 POS_ffn_RTKLIB = paste0(proc_cf_dn,"JVD-OCC6-P3-PPK-DNVK-RTKLIB.pos")
 
-PEG = 3
+
+POS_ffn_EMLSTU = paste0(proc_cf_dn,"JVD-OCC6-P3-PPK-WRPA-EMLSTU.pos")
+POS_ffn_RTKLIB = paste0(proc_cf_dn,"JVD-OCC6-P3-PPK-WRPA-RTKLIB.pos")
+
+# POS_ffn_EMLSTU = paste0(proc_cf_dn,"JVD-OCC7-P2-PPK-WRPA-EMLSTU.pos")
+# POS_ffn_RTKLIB = paste0(proc_cf_dn,"JVD-OCC7-P2-PPK-WRPA-RTKLIB.pos")
+
+PEG = as.numeric(str_extract(POS_ffn_RTKLIB, "(?<=P)\\d{1}(?=\\-PPK)"))
 X_EMLSTU = anal_POS_generic(POS_ffn = POS_ffn_EMLSTU, known_coords = get_peg_loc(PEG),POS_FMT = 5)
+```
+
+
+```{r}
+
 X_RTKLIB = anal_POS_generic(POS_ffn = POS_ffn_RTKLIB, known_coords = get_peg_loc(PEG),POS_FMT = 5)
 
 
-print(paste("LAT = ", formatC(X_EMLSTU[1], digits = 15), "LON = ", formatC(X_EMLSTU[2], digits = 15) ))
+# print(paste("LAT = ", formatC(X_EMLSTU[1], digits = 15), "LON = ", formatC(X_EMLSTU[2], digits = 15) ))
+
+ptype = 'float'
 
 
-print(formatC(X_EMLSTU$LAT_avg_float, digits = 12))
-print(formatC(X_EMLSTU$LON_avg_float, digits = 12))
+if (ptype=='float'| ptype == 'both'){
+  
+  print(paste0( "EMLSTU LAT: ",formatC(X_EMLSTU$LAT_avg_float, digits = 12), "    |    EMLSTU LON: ", formatC(X_EMLSTU$LON_avg_float, digits = 12),  "    |    Accuracy: ",  formatC(X_EMLSTU$M_ACC_float, digits = 6), "    |    PREC: ",  formatC(X_EMLSTU$M_PREC_float, digits = 4), "    |    Percent fix: ",  formatC(X_EMLSTU$PERCENT_FIXED, digits = 4)))
+  
+  print(paste0( "RTKLIB LAT: ",formatC(X_RTKLIB$LAT_avg_float, digits = 12), "    |    RTKLIB LON: ", formatC(X_RTKLIB$LON_avg_float, digits = 12),  "    |    Accuracy: ",  formatC(X_RTKLIB$M_ACC_float, digits = 6), "    |    PREC: ",  formatC(X_RTKLIB$M_PREC_float, digits = 4), "    |    Percent fix: ",  formatC(X_RTKLIB$PERCENT_FIXED, digits = 4)))
+  
+  Agreement = sqrt(((X_EMLSTU$LAT_avg_float -X_RTKLIB$LAT_avg_float )^2) + ((X_EMLSTU$LON_avg_float -X_RTKLIB$LON_avg_float)^2))
+  
+}
 
 
+if (ptype == 'fixed' | ptype == 'both'){
+  
+  
+  print(paste0( "EMLSTU LAT: ",formatC(X_EMLSTU$LAT_avg_fixed, digits = 12), "    |     LON: ", formatC(X_EMLSTU$LON_avg_fixed, digits = 12),  "    |    Accuracy: ",  formatC(X_EMLSTU$M_ACC_fixed, digits = 6),  "    |    PREC: ",  formatC(X_EMLSTU$M_PREC_fixed, digits = 4), "    |    Percent fix: ",  formatC(X_EMLSTU$PERCENT_FIXED, digits = 4)))
+  
+  print(paste0( "RTKLIB LAT: ",formatC(X_RTKLIB$LAT_avg_fixed, digits = 12), "    |     LON: ", formatC(X_RTKLIB$LON_avg_fixed, digits = 12),  "    |    Accuracy: ",  formatC(X_RTKLIB$M_ACC_fixed, digits = 6), "    |    PREC: ",  formatC(X_RTKLIB$M_PREC_fixed, digits = 4),  "    |    Percent fix: ",  formatC(X_RTKLIB$PERCENT_FIXED, digits = 4)))
+  
+  Agreement = sqrt(((X_EMLSTU$LAT_avg_fixed -X_RTKLIB$LAT_avg_fixed )^2) + ((X_EMLSTU$LON_avg_fixed -X_RTKLIB$LON_avg_fixed)^2))
+  
+}
 
+
+print(Agreement)
 ```
 
 
@@ -4212,6 +4938,8 @@ print(formatC(X_RTKLIB$DEL_LON_avg, digits = 12))
 
 ## 8. How do you find single “best” solution from POS file of many solutions?8
 
+
+The answer - the best solution appears to be the fixed solution with the highest IA ratio
 
 ```{r}
 
@@ -4381,7 +5109,7 @@ g = g + theme_bw() +
 g
 
 WD = 28
-HT = 8/18*28
+HT = 8/18*WD
 
 specdim = F
 
@@ -4414,5 +5142,127 @@ melap_best = POS_data_with_COORDS$melap[POS_data_sel_lng_best_sdneu]
 ## 9. Do the “Single” Solutions get included into the POS file?9
 ## 10. Does the PPP pos file provide any more information that we don’t get from the PDF?10
 
+## 11. Show a comparison between all the solutions (PPK-DNVK, PPK-WRPA, PPK-R10, PPP)
 
+
+
+
+
+
+
+
+
+
+#==============================================================
+# Plot Solutions ------------------------
+#==============================================================
+
+# PPK-DNVK
+
+```{r}
+plot_solution(POS_fn="JVD-OCC1-P6-PPK-DNVK.POS", ratio_th = 15)
+plot_solution(POS_fn="JVD-OCC2-P4-PPK-DNVK.POS", ratio_th = 15)
+plot_solution(POS_fn="JVD-OCC3-P7-PPK-DNVK.POS", ratio_th = 15)
+plot_solution(POS_fn="JVD-OCC5-P5-PPK-DNVK.POS", ratio_th = 15)
+plot_solution(POS_fn="JVD-OCC6-P3-PPK-DNVK.POS", ratio_th = 15)
+plot_solution(POS_fn="JVD-OCC7-P2-PPK-DNVK.POS", ratio_th = 15)
+plot_solution(POS_fn="JVD-OCC8-P1-PPK-DNVK.POS", ratio_th = 15)
+plot_solution(POS_fn="JVD-OCC9-P8-PPK-DNVK.POS", ratio_th = 15)
+
+plot_solution(POS_fn="EML-OCC1-P7-PPK-DNVK.POS", ratio_th = 15)
+plot_solution(POS_fn="EML-OCC2-P6-PPK-DNVK.POS", ratio_th = 15)
+plot_solution(POS_fn="EML-OCC3-P3-PPK-DNVK.POS", ratio_th = 15)
+plot_solution(POS_fn="EML-OCC5-P2-PPK-DNVK.POS", ratio_th = 15)
+plot_solution(POS_fn="EML-OCC6-P8-PPK-DNVK.POS", ratio_th = 15)
+plot_solution(POS_fn="EML-OCC7-P4-PPK-DNVK.POS", ratio_th = 15)
+plot_solution(POS_fn="EML-OCC8-P6-PPK-DNVK.POS", ratio_th = 15)
+plot_solution(POS_fn="EML-OCC9-P1-PPK-DNVK.POS", ratio_th = 15)
+
+plot_solution(POS_fn="R10-ROVER-OCC1-P8-PPK-DNVK.POS", ratio_th = 15)
+plot_solution(POS_fn="R10-ROVER-OCC2-P5-PPK-DNVK.POS", ratio_th = 15)
+plot_solution(POS_fn="R10-ROVER-OCC3-P1-PPK-DNVK.POS", ratio_th = 15)
+plot_solution(POS_fn="R10-ROVER-OCC5-P4-PPK-DNVK.POS", ratio_th = 15)
+plot_solution(POS_fn="R10-ROVER-OCC6-P7-PPK-DNVK.POS", ratio_th = 15)
+plot_solution(POS_fn="R10-ROVER-OCC7-P3-PPK-DNVK.POS", ratio_th = 15)
+plot_solution(POS_fn="R10-ROVER-OCC8-P2-PPK-DNVK.POS", ratio_th = 15)
+
+plot_solution(POS_fn="TOP-OCC1-P5-PPK-DNVK.POS", ratio_th = 15)
+plot_solution(POS_fn="TOP-OCC2-P8-PPK-DNVK.POS", ratio_th = 15)
+plot_solution(POS_fn="CAR-OCC1-P4-PPK-DNVK.POS", ratio_th = 15)
+plot_solution(POS_fn="CAR-OCC2-P7-PPK-DNVK.POS", ratio_th = 15)
+```
+
+# PPK-WRPA
+
+
+```{r}
+plot_solution(POS_fn="JVD-OCC1-P6-PPK-WRPA.POS", ratio_th = 15)
+plot_solution(POS_fn="JVD-OCC2-P4-PPK-WRPA.POS", ratio_th = 15)
+plot_solution(POS_fn="JVD-OCC3-P7-PPK-WRPA.POS", ratio_th = 15)
+plot_solution(POS_fn="JVD-OCC5-P5-PPK-WRPA.POS", ratio_th = 15)
+plot_solution(POS_fn="JVD-OCC6-P3-PPK-WRPA.POS", ratio_th = 15)
+plot_solution(POS_fn="JVD-OCC7-P2-PPK-WRPA.POS", ratio_th = 15)
+plot_solution(POS_fn="JVD-OCC8-P1-PPK-WRPA.POS", ratio_th = 15)
+plot_solution(POS_fn="JVD-OCC9-P8-PPK-WRPA.POS", ratio_th = 15)
+
+plot_solution(POS_fn="EML-OCC1-P7-PPK-WRPA.POS", ratio_th = 15)
+plot_solution(POS_fn="EML-OCC2-P6-PPK-WRPA.POS", ratio_th = 15)
+plot_solution(POS_fn="EML-OCC3-P3-PPK-WRPA.POS", ratio_th = 15)
+plot_solution(POS_fn="EML-OCC5-P2-PPK-WRPA.POS", ratio_th = 15)
+plot_solution(POS_fn="EML-OCC6-P8-PPK-WRPA.POS", ratio_th = 15)
+plot_solution(POS_fn="EML-OCC7-P4-PPK-WRPA.POS", ratio_th = 15)
+plot_solution(POS_fn="EML-OCC8-P6-PPK-WRPA.POS", ratio_th = 15)
+plot_solution(POS_fn="EML-OCC9-P1-PPK-WRPA.POS", ratio_th = 15)
+
+plot_solution(POS_fn="R10-ROVER-OCC1-P8-PPK-WRPA.POS", ratio_th = 15)
+plot_solution(POS_fn="R10-ROVER-OCC2-P5-PPK-WRPA.POS", ratio_th = 15)
+plot_solution(POS_fn="R10-ROVER-OCC3-P1-PPK-WRPA.POS", ratio_th = 15)
+plot_solution(POS_fn="R10-ROVER-OCC5-P4-PPK-WRPA.POS", ratio_th = 15)
+plot_solution(POS_fn="R10-ROVER-OCC6-P7-PPK-WRPA.POS", ratio_th = 15)
+plot_solution(POS_fn="R10-ROVER-OCC7-P3-PPK-WRPA.POS", ratio_th = 15)
+plot_solution(POS_fn="R10-ROVER-OCC8-P2-PPK-WRPA.POS", ratio_th = 15)
+
+plot_solution(POS_fn="TOP-OCC1-P5-PPK-WRPA.POS", ratio_th = 15)
+plot_solution(POS_fn="TOP-OCC2-P8-PPK-WRPA.POS", ratio_th = 15)
+plot_solution(POS_fn="CAR-OCC1-P4-PPK-WRPA.POS", ratio_th = 15)
+plot_solution(POS_fn="CAR-OCC2-P7-PPK-WRPA.POS", ratio_th = 15)
+```
+
+# PPK-R10
+
+```{r}
+
+plot_solution(POS_fn="JVD-OCC1-P6-PPK-R10.POS", ratio_th = 15)
+plot_solution(POS_fn="JVD-OCC2-P4-PPK-R10.POS", ratio_th = 15)
+# plot_solution(POS_fn="JVD-OCC3-P7-PPK-R10.POS", ratio_th = 15)
+plot_solution(POS_fn="JVD-OCC5-P5-PPK-R10.POS", ratio_th = 15)
+plot_solution(POS_fn="JVD-OCC6-P3-PPK-R10.POS", ratio_th = 15)
+plot_solution(POS_fn="JVD-OCC7-P2-PPK-R10.POS", ratio_th = 15)
+plot_solution(POS_fn="JVD-OCC8-P1-PPK-R10.POS", ratio_th = 15)
+plot_solution(POS_fn="JVD-OCC9-P8-PPK-R10.POS", ratio_th = 15)
+
+plot_solution(POS_fn="EML-OCC1-P7-PPK-R10.POS", ratio_th = 15)
+plot_solution(POS_fn="EML-OCC2-P6-PPK-R10.POS", ratio_th = 15)
+# plot_solution(POS_fn="EML-OCC3-P3-PPK-R10.POS", ratio_th = 15)
+plot_solution(POS_fn="EML-OCC5-P2-PPK-R10.POS", ratio_th = 15)
+plot_solution(POS_fn="EML-OCC6-P8-PPK-R10.POS", ratio_th = 15)
+plot_solution(POS_fn="EML-OCC7-P4-PPK-R10.POS", ratio_th = 15)
+plot_solution(POS_fn="EML-OCC8-P6-PPK-R10.POS", ratio_th = 15)
+plot_solution(POS_fn="EML-OCC9-P1-PPK-R10.POS", ratio_th = 15)
+
+plot_solution(POS_fn="R10-ROVER-OCC1-P8-PPK-R10.POS", ratio_th = 15)
+plot_solution(POS_fn="R10-ROVER-OCC2-P5-PPK-R10.POS", ratio_th = 15)
+# plot_solution(POS_fn="R10-ROVER-OCC3-P1-PPK-R10.POS", ratio_th = 15)
+plot_solution(POS_fn="R10-ROVER-OCC5-P4-PPK-R10.POS", ratio_th = 15)
+plot_solution(POS_fn="R10-ROVER-OCC6-P7-PPK-R10.POS", ratio_th = 15)
+plot_solution(POS_fn="R10-ROVER-OCC7-P3-PPK-R10.POS", ratio_th = 15)
+plot_solution(POS_fn="R10-ROVER-OCC8-P2-PPK-R10.POS", ratio_th = 15)
+
+plot_solution(POS_fn="TOP-OCC1-P5-PPK-R10.POS", ratio_th = 15)
+plot_solution(POS_fn="TOP-OCC2-P8-PPK-R10.POS", ratio_th = 15)
+plot_solution(POS_fn="CAR-OCC1-P4-PPK-R10.POS", ratio_th = 15)
+plot_solution(POS_fn="CAR-OCC2-P7-PPK-R10.POS", ratio_th = 15)
+
+
+```
 

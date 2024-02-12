@@ -1005,6 +1005,97 @@ proc_rtk = function(Rover, Occ, Method, Period, InputFilesOption = 2, plotdim = 
   
 }
 
+
+
+
+#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+### run_rtkpost_win
+#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+# run the Windows Version of RTK post using the version RTKLIB vdemo.5 b34i 
+
+# run_rtkpost_win = function(){
+#   
+#   config_file = "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/RTKLIB_config-files/MATCH_EMLIDSTUDIO.conf"
+#   
+#   InputFilesOption=3
+#   use_prec_eph_clk = F
+#   
+#   Rover = "JVD"
+#   Occ = 2
+#   Method = "RTK-R10"
+#   Period = "60MIN"
+#   
+#   
+#   
+#   
+#   cmd_stub = paste0("rnx2rtkp -k ", qm, config_ffn, qm, " -o ", qm,Solution_ffn,qm)
+#   
+#   
+#   
+# }
+# # buld the time mark portion of the command if it is used
+# if (Period != "FULL" ){
+#   
+#   # 
+#   # Period = "30MIN_TO_60MIN"
+#   # Period = "30MIN"
+#   
+#   
+#   start_AND_stop = str_detect(Period, "_TO_")|str_detect(Period, "_to_")
+#   
+#   if (start_AND_stop){
+#     start_MIN = as.numeric(str_extract(Period, "^\\d{1,4}"))
+#     end_MIN = as.numeric(str_extract(Period, "(?<=\\d{1,4}MIN\\_TO\\_)\\d{1,4}"))
+#   } else {
+#     start_MIN = 0
+#     end_MIN = as.numeric(str_extract(Period, "^\\d{1,4}"))
+#   }
+#   
+#   
+#   #get the start time of the measurement
+#   
+#   tm_start_obs = current_metadata_row$OCC_START
+#   tm_end_obs = current_metadata_row$OCC_END
+#   
+#   tm_start_proc = tm_start_obs + minutes(start_MIN)
+#   tm_end_proc = tm_start_obs + minutes(end_MIN)
+#   
+#   fmt = "%Y/%m/%d %H:%M:%S"
+#   
+#   tm_start_proc_txt = strftime(tm_start_proc, fmt, tz = "UTC")
+#   tm_end_proc_txt = strftime(tm_end_proc, fmt, tz = "UTC")
+#   
+#   timeSliceString = paste0("-ts ", tm_start_proc_txt, " -te ", tm_end_proc_txt) 
+#   
+#   cmd_stub_mdf = paste0(cmd_stub, " ", timeSliceString)
+#   
+# } else {
+#   
+#   cmd_stub_mdf = cmd_stub
+#   
+# }
+# 
+# #now create full CMD string
+# 
+# CMD = paste0(cmd_stub_mdf,  " ",
+#              qm, rover_ffn, qm, " ",
+#              qm, base_obs_ffn, qm, " ",
+#              qm, base_nav_ffn, qm, " ",
+#              qm, precise_eph_ffn, qm, " ",
+#              qm, precise_clk_ffn, qm)
+# 
+# 
+# 
+# print(CMD)
+# 
+# 
+# 
+# }
+
+
+
+
 #-----------------------------------------------------------------------#
 # analyze_POS: Analyses an RTKLIB Solution "POS" file (calls function read_POS)
 #-----------------------------------------------------------------------#
@@ -1303,10 +1394,30 @@ calc_POS_data_stats = function(POS_data, known_coords=NULL){
     known_coords = get_peg_loc(3)
     
   }
+  # POS_data_ffn = 'c:/temp/POS_data.csv'
+  # write_csv(POS_data, POS_data_ffn)
   
+  
+  POS_data_fixed_only = POS_data %>% filter(Q==1)
+  
+  IAR_BEST_fixed_LON = POS_data_fixed_only$LON[which.max(POS_data_fixed_only$ratio)]
+  IAR_BEST_fixed_LAT = POS_data_fixed_only$LAT[which.max(POS_data_fixed_only$ratio)]
+  
+  IAR_BEST_fixed_sdne= POS_data_fixed_only$sdne[which.max(POS_data_fixed_only$ratio)]
+  
+  IAR_BEST_fixed_sdn= POS_data_fixed_only$sdn[which.max(POS_data_fixed_only$ratio)]
+  IAR_BEST_fixed_sde= POS_data_fixed_only$sde[which.max(POS_data_fixed_only$ratio)]
+  IAR_BEST_fixed_sd_hz = sqrt(IAR_BEST_fixed_sdn^2 + IAR_BEST_fixed_sde^2)
   
   if (!is.null(known_coords)){
     POS_data_all_stats = POS_data %>% 
+      mutate(
+        LON_dev = LON - mean(LON, na.rm = T),
+        LAT_dev = LAT - mean(LAT, na.rm = T),
+        
+        LON_dev_sq = LON_dev^2,
+        LAT_dev_sq = LAT_dev^2,
+      ) %>% 
       summarise(
         LAT_avg = mean(LAT),
         LON_avg = mean(LON),
@@ -1321,7 +1432,7 @@ calc_POS_data_stats = function(POS_data, known_coords=NULL){
         KNOWN_POS_X = known_coords[1],
         KNOWN_POS_Y = known_coords[2],
         M_ACC = sqrt( (LON_avg-KNOWN_POS_X)^2 + (LAT_avg-KNOWN_POS_Y)^2  ),
-        M_PREC = sqrt(DEL_LON_sd^2 + DEL_LAT_sd^2),
+        M_PREC = 2*sqrt(DEL_LON_sd^2 + DEL_LAT_sd^2),
         
         LON_avg_single = mean(LON[Q==5]),
         LAT_avg_single = mean(LAT[Q==5]),
@@ -1338,19 +1449,74 @@ calc_POS_data_stats = function(POS_data, known_coords=NULL){
         M_ACC_all = sqrt( (LON_avg-KNOWN_POS_X)^2 + (LAT_avg-KNOWN_POS_Y)^2  ),
         M_PREC_all = M_PREC,
         M_ACC_single = sqrt( (LON_avg_single - KNOWN_POS_X)^2 + (LAT_avg_single - KNOWN_POS_Y)^2),
-        M_PREC_single =  sqrt((   (sd(DEL_LON[Q==5]))^2 + (sd(DEL_LAT[Q==5]))^2)),
+        M_PREC_single =  2*sqrt((   (sd(DEL_LON[Q==5]))^2 + (sd(DEL_LAT[Q==5]))^2)),
         M_ACC_fixed = sqrt( (LON_avg_fixed - KNOWN_POS_X)^2 + (LAT_avg_fixed - KNOWN_POS_Y)^2),
-        M_PREC_fixed =  sqrt((   (sd(DEL_LON[Q==1]))^2 + (sd(DEL_LAT[Q==1]))^2)),
+        M_PREC_fixed =  2*sqrt((   (sd(DEL_LON[Q==1]))^2 + (sd(DEL_LAT[Q==1]))^2)),
         M_ACC_float = sqrt( (LON_avg_float - KNOWN_POS_X)^2 + (LAT_avg_float - KNOWN_POS_Y)^2),
-        M_PREC_float =  sqrt((   (sd(DEL_LON[Q==2]))^2 + (sd(DEL_LAT[Q==2]))^2)),
+        M_PREC_float =  2*sqrt((   (sd(DEL_LON[Q==2]))^2 + (sd(DEL_LAT[Q==2]))^2)),
         M_ACC_fixed_or_float = sqrt( (LON_avg_fixed_or_float - KNOWN_POS_X)^2 + (LAT_avg_fixed_or_float - KNOWN_POS_Y)^2),
-        M_PREC_fixed_or_float =  sqrt((   (sd(DEL_LON[Q==1|Q==2]))^2 + (sd(DEL_LAT[Q==1|Q==2]))^2)),
+        M_PREC_fixed_or_float =  2*sqrt((   (sd(DEL_LON[Q==1|Q==2]))^2 + (sd(DEL_LAT[Q==1|Q==2]))^2)),
         PERCENT_SINGLE = 100 * length(which(Q==5))/length(Q),
         PERCENT_FLOAT = 100 * length(which(Q==2))/length(Q),
         PERCENT_FIXED = 100 * length(which(Q==1))/length(Q),
         TM_STT = min(UTC_TIME_PX),
         TM_END = max(UTC_TIME_PX),
-        OCC_TM = (as.numeric(TM_END) - as.numeric(TM_STT))/3600
+        OCC_TM = (as.numeric(TM_END) - as.numeric(TM_STT))/3600,
+        DEL_LON_fixed_avg = mean(DEL_LON[Q==1]),
+        DEL_LAT_fixed_avg = mean(DEL_LAT[Q==1]),
+        DEL_LON_fixed_sd = sd(DEL_LON[Q==1]),
+        DEL_LAT_fixed_sd = sd(DEL_LAT[Q==1]),
+        DEL_LON_float_avg = mean(DEL_LON[Q==2]),
+        DEL_LAT_float_avg = mean(DEL_LAT[Q==2]),
+        DEL_LON_float_sd = sd(DEL_LON[Q==2]),
+        DEL_LAT_float_sd = sd(DEL_LAT[Q==2]),
+        DEL_LON_single_avg = mean(DEL_LON[Q==5]),
+        DEL_LAT_single_avg = mean(DEL_LAT[Q==5]),
+        DEL_LON_single_sd = sd(DEL_LON[Q==5]),
+        DEL_LAT_single_sd = sd(DEL_LAT[Q==5]),
+        
+        RMSEx_fixed = sqrt(sum(  LON_dev_sq[Q==1])),
+        RMSEy_fixed = sqrt(sum(  LAT_dev_sq[Q==1])),
+        DRMS_fixed = sqrt(0.5 * (RMSEx_fixed^2 + RMSEy_fixed^2)),
+        DRMS2_fixed = 2 * DRMS_fixed,
+        # M_PREC_fixed_old = M_PREC_fixed,
+        # M_PREC_fixed = DRMS2_fixed,
+        
+        RMSEx_float_n = length(LON_dev_sq[Q==2]),
+        RMSEx_float_sumsq = sum(LON_dev_sq[Q==2]),
+        
+        RMSEx_float = sqrt(sum(  LON_dev_sq[Q==2], na.rm = T)),
+        RMSEy_float = sqrt(sum(  LAT_dev_sq[Q==2], na.rm = T)),
+        DRMS_float = sqrt(0.5 * (RMSEx_float^2 + RMSEy_float^2)),
+        DRMS2_float = 2 * DRMS_float,
+        # M_PREC_float_old = M_PREC_float,
+        # M_PREC_float = DRMS2_float,
+        
+        RMSEx_single = sqrt(sum(  LON_dev_sq[Q==5])),
+        RMSEy_single = sqrt(sum(  LAT_dev_sq[Q==5])),
+        DRMS_single = sqrt(0.5 * (RMSEx_single^2 + RMSEy_single^2)),
+        DRMS2_single = 2 * DRMS_single,
+        # M_PREC_single_old = M_PREC_single,
+        # M_PREC_single = DRMS2_single,
+        
+        
+        
+        
+      ) %>% 
+      mutate(
+        DRMS_v2_float = sqrt(DEL_LON_float_sd^2 + DEL_LAT_float_sd^2),
+        DRMS2_v2_float = 2 * DRMS_v2_float,
+        CEP = 0.62*DEL_LAT_float_sd + 0.56* DEL_LAT_float_sd,
+        R95 = 2.08 * CEP,
+        
+        IAR_BEST_fixed_LON = IAR_BEST_fixed_LON,
+        IAR_BEST_fixed_LAT = IAR_BEST_fixed_LAT,
+        
+        IAR_BEST_fixed_DEL_LON = IAR_BEST_fixed_LON - KNOWN_POS_X,
+        IAR_BEST_fixed_DEL_LAT = IAR_BEST_fixed_LAT - KNOWN_POS_Y,
+        
+        M_ACC_IAR_BEST = sqrt(IAR_BEST_fixed_DEL_LON^2 + IAR_BEST_fixed_DEL_LAT^2),
+        M_PREC_IAR_BEST = 2*IAR_BEST_fixed_sd_hz
         
       )
     
@@ -1366,6 +1532,11 @@ calc_POS_data_stats = function(POS_data, known_coords=NULL){
         M_PREC = sqrt(LON_sd^2 + LAT_sd^2)
       )
   }
+  
+  # print('@@@@@@@@@@@@@@@@@@@@@')
+  # print(paste(nrow(POS_data),POS_data_all_stats$RMSEx_float, POS_data_all_stats$RMSEx_float_sumsq))
+  # print('@@@@@@@@@@@@@@@@@@@@@')
+  # 
   return(POS_data_all_stats)
 }
 
@@ -1615,6 +1786,10 @@ anal_POS_generic = function(POS_ffn, known_coords = NULL, POS_FMT = NULL){
   print(paste("PERCENT FIXED = ",formatC(SOLN_QBASED$PERCENT_FIXED,digits = 4),"%"))
   print(paste("PERCENT FLOAT = ",formatC(SOLN_QBASED$PERCENT_FLOAT,digits = 4),"%"))
   
+  print(paste("DRMS2_float_v1 = ",formatC(SOLN_QBASED$DRMS2_float,digits = 4)," m"))
+  print(paste("DRMS2_float_v1 = ",formatC(SOLN_QBASED$DRMS2_v2_float,digits = 4)," m"))
+  
+  
   
   print(paste(
     formatC(SOLN_QBASED$LON_avg,digits = 11),
@@ -1717,7 +1892,7 @@ proc_pos_seg = function(REC, OCC,PEG,MET, HH, MM){
 
 read_PPP_file = function(ffn){
   
- testmode = F
+  testmode = F
   if (testmode){
     ffn = "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/data/FINAL_PPP_SOLUTIONS/TOP-OCC1-PEG5/bal-3110_edited.pdf"
   }
@@ -1758,7 +1933,7 @@ read_PPP_file = function(ffn){
   # Est_pos_ITRF20_LON_M = str_extract(Est_pos_ITRF20_extr, "(?<=^\\-\\d{1,2}\\°\\s)\\d{1,2}")
   # Est_pos_ITRF20_LON_S = str_extract(Est_pos_ITRF20_extr, "(?<=^\\-\\d{1,2}\\°\\s\\d{1,2}\\'\\s)\\d{2}\\.\\d{1,6}")
   # 
-  # Est_pos_ITRF20_ELEV = str_extract(Est_pos_ITRF20_extr, "\\d{1,6}\\.\\d{1,6}$")
+  Est_pos_ITRF20_ELEV = str_extract(Est_pos_ITRF20_extr, "\\d{1,6}\\.\\d{1,6}$")
   # 
   # 
   
@@ -1904,5 +2079,101 @@ collate_ppk = function(MET, OCC_TBL_ffn){
   }
   return(SOLN_COLLATED)
 }
+
+
+#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+### plot_solution
+#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+plot_solution = function(POS_fn=NULL, ratio_th = 15){
+  
+  if (is.null(POS_fn)){
+    
+    POS_fn = "JVD-OCC6-P3-PPK-DNVK.pos"
+    POS_fn = "EML-OCC3-P3-PPK-DNVK.pos"
+    POS_fn = "JVD-OCC3-P7-PPK-DNVK.pos"
+    POS_fn = "R10-ROVER-OCC3-P1-PPK-DNVK.pos"
+    POS_fn = "EML-OCC6-P8-PPK-DNVK.pos"
+    POS_fn = "JVD-OCC6-P3-PPK-DNVK.pos"
+    POS_fn = "R10-ROVER-OCC6-P7-PPK-DNVK.pos"
+    
+    POS_fn = "EML-OCC7-P4-PPK-DNVK.pos"
+    POS_fn = "JVD-OCC7-P2-PPK-DNVK.pos"
+    POS_fn = "R10-ROVER-OCC7-P3-PPK-DNVK.pos"
+    
+    ratio_th = 15
+    
+  }
+  
+  POS_dn = "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/data/FINAL_SOLUTIONS/"
+  
+  POS_ffn = paste0(POS_dn, POS_fn)
+  
+  peg_no = as.numeric(str_extract(POS_ffn, "(?<=\\-P)\\d{1}(?=\\-)"))
+  known_coords = get_peg_loc(peg_no)
+  
+  POS_data = read_POS(POS_ffn, FMT_OPT = 5)
+  
+  #convert coordinates
+  POS_data_with_COORDS = convert_crs_df(POS_data, src_crs = 4326, dst_crs = 2193, 
+                                        input_coord_labs = c("Lon_DD", "Lat_DD"),
+                                        output_coord_labs = c("LON", "LAT"))
+  
+  
+  POS_data_mdf = add_diff_from_known(POS_data_with_COORDS, known_coords)
+  
+  POS_data_mdf2 = POS_data_mdf %>% 
+    mutate(soln_type = case_when(
+      Q==1 ~ "Fixed",
+      Q==2 ~ "Float",
+      Q==5 ~ "Single",
+    ))
+  
+  
+  POS_data_mdf2_filt = POS_data_mdf2 %>% filter(ratio>ratio_th & Q==1)
+  
+  sz=.5
+  
+  axlim = 3
+  
+  g = ggplot(POS_data_mdf2) + geom_point(aes(DEL_LON, DEL_LAT, color = soln_type), size = sz)
+  g = g + geom_point(data = POS_data_mdf2_filt,aes(DEL_LON, DEL_LAT), color = "red",  size = sz)
+  g = g + lims(x = c(-axlim, axlim), y =  c(-axlim, axlim))
+  g = g + scale_color_manual(values = c("green", "orange", "blue"))
+  nm = tools::file_path_sans_ext(basename(POS_ffn))
+  g = g + ggtitle(nm)
+  g
+  
+  g1 = g
+  
+  POS_data_mdf2_lng = POS_data_mdf2 %>% 
+    gather(key, value, DEL_LAT, DEL_LON, ratio, nvsv, DEL_LATLON )
+  
+  POS_data_mdf2_filt_lng = POS_data_mdf2_filt %>% 
+    gather(key, value, DEL_LAT, DEL_LON, ratio, nvsv, DEL_LATLON )
+  
+  
+  
+  g = ggplot(POS_data_mdf2_lng) + geom_point(aes(melap, value, color = soln_type), size = sz)
+  g = g + geom_point(data  = POS_data_mdf2_filt_lng, aes(melap, value), color = "red", size = sz)
+  
+  g = g + facet_wrap(~key, scales = "free_y")
+  
+  g = g + scale_color_manual(values = c("darkgreen", "orange", "blue"))
+  g
+  
+  g2 = g
+  
+  g = plot_grid(g1,g2, nrow = 2)
+  
+  
+  g
+  ggsave(paste0(plotdir,"POS_plots/", nm, ".png"), g  )
+  
+}
+
+
+
+
 
 
