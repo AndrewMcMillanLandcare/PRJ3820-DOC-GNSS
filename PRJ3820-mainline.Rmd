@@ -3351,6 +3351,11 @@ names(PPK_ALL_COLLATED_DNVK_mdf)
 PPK_ALL_COLLATED_DNVK_mdf_2_plot = PPK_ALL_COLLATED_DNVK_mdf %>% 
   dplyr::select(DEL_LON_2_plot, DEL_LAT_2_plot, M_PREC_2_plot, OCC_corr, RECEIVER)
 
+
+PPK_ALL_COLLATED_DNVK_mdf_2_plot_ffn = paste0(datadir, "PPK_ALL_COLLATED_DNVK_mdf_2_plot.RDS")
+saveRDS(PPK_ALL_COLLATED_DNVK_mdf_2_plot, PPK_ALL_COLLATED_DNVK_mdf_2_plot_ffn)
+
+
 g = ggplot(PPK_ALL_COLLATED_DNVK_mdf_2_plot) 
 g = g + lims(x = c(-axlim,axlim), y = c(-axlim,axlim))
 g = g + geom_hline(aes(yintercept = 0), color = "red", linetype = "dashed", alpha = alp)
@@ -3637,6 +3642,10 @@ names(PPK_ALL_COLLATED_WRPA_mdf)
 PPK_ALL_COLLATED_WRPA_mdf_2_plot = PPK_ALL_COLLATED_WRPA_mdf %>% 
   dplyr::select(DEL_LON_2_plot, DEL_LAT_2_plot, M_PREC_2_plot, OCC_corr, RECEIVER)
 
+PPK_ALL_COLLATED_WRPA_mdf_2_plot_ffn = paste0(datadir, "PPK_ALL_COLLATED_WRPA_mdf_2_plot.RDS")
+saveRDS(PPK_ALL_COLLATED_WRPA_mdf_2_plot, PPK_ALL_COLLATED_WRPA_mdf_2_plot_ffn)
+
+
 
 g = ggplot(PPK_ALL_COLLATED_WRPA_mdf_2_plot) 
 g = g + lims(x = c(-axlim,axlim), y = c(-axlim,axlim))
@@ -3900,6 +3909,10 @@ PPK_ALL_COLLATED_R10_mdf$M_PREC_2_plot[which(PPK_ALL_COLLATED_R10_mdf$OCC==7 & P
 PPK_ALL_COLLATED_R10_mdf_2_plot = PPK_ALL_COLLATED_R10_mdf %>% 
   dplyr::select(DEL_LON_2_plot, DEL_LAT_2_plot, M_PREC_2_plot, OCC_corr, RECEIVER)
 
+PPK_ALL_COLLATED_R10_mdf_2_plot_ffn = paste0(datadir, "PPK_ALL_COLLATED_R10_mdf_2_plot.RDS")
+saveRDS(PPK_ALL_COLLATED_R10_mdf_2_plot, PPK_ALL_COLLATED_R10_mdf_2_plot_ffn)
+
+
 g = ggplot(PPK_ALL_COLLATED_R10_mdf_2_plot) 
 g = g + lims(x = c(-axlim,axlim), y = c(-axlim,axlim))
 g = g + geom_hline(aes(yintercept = 0), color = "red", linetype = "dashed", alpha = alp)
@@ -4103,7 +4116,11 @@ for (i in 1:nrow(OCC_TBL_filt)){
   
   PPP_ffn = list.files(PPP_dn, pattern = "pdf$", full.names = T)
   
+  
   PPP_results = read_PPP_file(PPP_ffn) %>% mutate(OCC_UID = OCC_UID_curr)
+  
+  PPP_POS_ffn = list.files(PPP_dn, pattern = "pos$", full.names = T)
+  PPP_POS_results = read_table(PPP_POS_ffn,  skip = 5)
   
   
   if (i==1){
@@ -4245,6 +4262,9 @@ PPP_RESULTS_FINAL_VAL_2_plot = PPP_RESULTS_FINAL_VAL %>%
          PREC =  `PREC ALL` * 2) %>% 
   dplyr::select(OCC_corr, RECEIVER, DEL_X, DEL_Y, PREC , semi_maj , semi_min=semi_muin, sem_maj_angle)
 
+
+PPP_RESULTS_FINAL_VAL_2_plot_ffn = paste0(datadir, "PPP_RESULTS_FINAL_VAL_2_plot.RDS")
+saveRDS(PPP_RESULTS_FINAL_VAL_2_plot, PPP_RESULTS_FINAL_VAL_2_plot_ffn)
 
 
 g = ggplot(PPP_RESULTS_FINAL_VAL_2_plot) 
@@ -5142,13 +5162,169 @@ melap_best = POS_data_with_COORDS$melap[POS_data_sel_lng_best_sdneu]
 ## 9. Do the “Single” Solutions get included into the POS file?9
 ## 10. Does the PPP pos file provide any more information that we don’t get from the PDF?10
 
+
+```{r}
+
+
+
+
+
+
+
+
+
+
+```
+
+
+
+
 ## 11. Show a comparison between all the solutions (PPK-DNVK, PPK-WRPA, PPK-R10, PPP)
 
+This code below pools together the data from the DGNSS (R10, DNVK, and WRPA data and puts it together with the PPP)
+
+```{r}
+
+# get the DGNSS
+PPK_ALL_COLLATED_DNVK_mdf_2_plot_ffn = paste0(datadir, "PPK_ALL_COLLATED_DNVK_mdf_2_plot.RDS")
+PPK_ALL_COLLATED_DNVK_mdf_2_plot = readRDS(PPK_ALL_COLLATED_DNVK_mdf_2_plot_ffn) %>% 
+  mutate(MET = "PPK-DNVK")
+
+PPK_ALL_COLLATED_WRPA_mdf_2_plot_ffn = paste0(datadir, "PPK_ALL_COLLATED_WRPA_mdf_2_plot.RDS")
+PPK_ALL_COLLATED_WRPA_mdf_2_plot = readRDS(PPK_ALL_COLLATED_WRPA_mdf_2_plot_ffn)%>% 
+  mutate(MET = "PPK-WRPA")
+
+PPK_ALL_COLLATED_R10_mdf_2_plot_ffn = paste0(datadir, "PPK_ALL_COLLATED_R10_mdf_2_plot.RDS")
+PPK_ALL_COLLATED_R10_mdf_2_plot = readRDS(PPK_ALL_COLLATED_R10_mdf_2_plot_ffn)%>% 
+  mutate(MET = "PPK-R10")
+
+
+PPK_ALL_RECOLLATED = PPK_ALL_COLLATED_DNVK_mdf_2_plot %>% 
+  bind_rows(PPK_ALL_COLLATED_WRPA_mdf_2_plot) %>% 
+  bind_rows(PPK_ALL_COLLATED_R10_mdf_2_plot) %>% 
+  mutate(
+    M_ACC = sqrt(DEL_LON_2_plot^2 + DEL_LAT_2_plot^2 ),
+    M_PREC = M_PREC_2_plot ) %>% 
+  dplyr::select(RECEIVER, OCC_corr, MET, M_ACC, M_PREC)
+
+PPP_RESULTS_FINAL_VAL_2_plot_ffn = paste0(datadir, "PPP_RESULTS_FINAL_VAL_2_plot.RDS")
+
+PPP_RESULTS = readRDS(PPP_RESULTS_FINAL_VAL_2_plot_ffn) %>% 
+  mutate(
+    M_ACC = sqrt(DEL_X^2 + DEL_Y^2),
+    M_PREC = PREC,
+    MET = "PPP") %>% 
+  dplyr::select(
+    RECEIVER, OCC_corr, MET, M_ACC, M_PREC
+  )
+
+
+PPK_PPP_ALL_COLLATED = PPK_ALL_RECOLLATED %>% 
+  bind_rows(PPP_RESULTS)
+
+
+```
+
+# ~~~~~~~~~~~~~~~~ #
+# Figure 9011 -  Comparision of GNSS Solution Types
+# ~~~~~~~~~~~~~~~~ #
+
+```{r}
+fignum = 9011
+figdesc = "Comparison of GNSS Solution Types"
+figfmt = "png"
+fig_ffn = paste0(plotdir, fignum,"-", figdesc, ".", figfmt)
+
+
+
+g = ggplot(PPK_PPP_ALL_COLLATED)
+g = g + geom_point(aes(OCC_corr, M_ACC)) + facet_grid(RECEIVER ~ MET) + facet_grid(RECEIVER ~ MET)
+g = g + geom_errorbar(aes(x = OCC_corr, ymin = M_ACC-M_PREC , ymax = M_ACC+M_PREC ), width = .2)
+g
+g = g + theme_bw() +
+  theme(
+    strip.background =element_rect(fill="white"),
+    axis.title =  element_text(size = 12),
+    legend.position = "bottom")
+# axis.title = element_text(size = 16))
+g
+
+WD = 28
+HT = 8/18*WD
+
+specdim = F
+
+
+ggsave(filename = fig_ffn, plot = g, width = WD, height = HT, units = "cm", bg = "white")
+```
 
 
 
 
+# ~~~~~~~~~~~~~~~~ #
+# Figure 9012 -  Comparision of GNSS Solution Types
+# ~~~~~~~~~~~~~~~~ #
 
+```{r}
+fignum = 9012
+figdesc = "Comparison of GNSS Solution Type-summary stats"
+figfmt = "png"
+fig_ffn = paste0(plotdir, fignum,"-", figdesc, ".", figfmt)
+
+PPK_PPP_ALL_COLLATED_smy = PPK_PPP_ALL_COLLATED %>% 
+  mutate(M_PREC_SQ = M_PREC*M_PREC) %>% 
+  filter(OCC_corr <3 & RECEIVER != "Trimble R10-2") %>% 
+  group_by(RECEIVER, MET) %>% 
+  summarise(
+    M_ACC = mean(M_ACC),
+    SS_M_PREC = sum(M_PREC_SQ),
+    M_PREC = sqrt(SS_M_PREC)
+  ) %>% 
+  mutate(
+    SOL_TYPE = case_when(
+      MET == "PPK-DNVK" ~ "PP-DNVK",
+      MET == "PPK-WRPA" ~ "PP-WRPA",
+      MET == "PPK-R10" ~ "PP-R10",
+      MET == "PPP" ~ "CSRS-PPP"
+    )
+  )
+
+PPK_PPP_ALL_COLLATED_smy$SOL_TYPE = factor(PPK_PPP_ALL_COLLATED_smy$SOL_TYPE, 
+                                           levels = c("PP-R10", "PP-DNVK", "PP-WRPA", "CSRS-PPP")) 
+
+
+g = ggplot(PPK_PPP_ALL_COLLATED_smy)
+g = g + geom_point(aes(RECEIVER, M_ACC, color = SOL_TYPE),position = position_dodge(width = .3) ) 
+g = g + geom_errorbar(aes(x = RECEIVER, ymin = M_ACC-M_PREC , ymax = M_ACC+M_PREC,  color = SOL_TYPE ), width = .2,position = position_dodge(width = .3) )
+g = g + labs(x = "GNSS receiver", y = "Accuracy (m)", color = "Solution type")
+g
+g = g + theme_bw() +
+  theme(
+    strip.background =element_rect(fill="white"),
+    axis.title =  element_text(size = 12),
+    legend.position = "bottom")
+# axis.title = element_text(size = 16))
+g
+
+WD = 28
+HT = 8/18*WD
+
+# specdim = F
+
+specdim = F
+
+
+
+
+if (specdim){
+  ggsave(filename = fig_ffn, plot = g, width = WD, height = HT, units = "cm", bg = "white")
+} else {
+  ggsave(filename = fig_ffn, plot = g,  units = "cm", bg = "white")
+}
+
+
+
+```
 
 
 
@@ -5263,6 +5439,95 @@ plot_solution(POS_fn="TOP-OCC2-P8-PPK-R10.POS", ratio_th = 15)
 plot_solution(POS_fn="CAR-OCC1-P4-PPK-R10.POS", ratio_th = 15)
 plot_solution(POS_fn="CAR-OCC2-P7-PPK-R10.POS", ratio_th = 15)
 
+
+```
+
+
+
+
+
+
+# Convert the LINZ Geodetic Marker to NZTM 2193
+
+```{r}
+
+A3UB_LL = data.frame(LAT = -40.3363405490000, LON = 175.83464915000)
+
+A3UB_WGS84 = st_as_sf(A3UB_LL, coords = c("LON", "LAT"), crs = 4326)
+A3UB_NZTM = A3UB_WGS84 %>% st_transform(crs = 2193)
+
+A3UB_NZTM_COORDS = A3UB_2193 %>% st_coordinates()
+
+print(formatC(A3UB_NZTM_COORDS, digits = 12))
+
+mapview(A3UB_NZTM)
+
+
+
+```
+
+
+
+
+# Check R conversion of CRS
+
+```{r}
+
+# take coordinates foudn by PPP for CAR/OCC1/P4
+BAL_OCC1_P4_coords = data.frame(LAT = 5534244.292, LON = 399130.516)
+
+# read in as WGS84 UTM Z60S
+BAL_OCC1_P4_UTMZ60S = st_as_sf(BAL_OCC1_P4_coords, coords = c("LON", "LAT"), crs = 32760)
+
+# convert to WGS84
+BAL_OCC1_P4_ITRF20_2023p8 = BAL_OCC1_P4_UTMZ60S %>% st_transform(crs = 4326)
+
+# extract coordinates
+BAL_OCC1_P4_ITRF20_2023p8_coords = st_coordinates(BAL_OCC1_P4_ITRF20_2023p8)
+
+mapview(BAL_OCC1_P4_ITRF20_2023p8)
+
+# grab the integer portion
+BAL_OCC1_P4_ITRF20_2023p8_coords_DD = sign(BAL_OCC1_P4_ITRF20_2023p8_coords)*floor(abs(BAL_OCC1_P4_ITRF20_2023p8_coords))
+
+#calculate fractional minuts
+BAL_OCC1_P4_ITRF20_2023p8_coords_MM_frac = (abs(BAL_OCC1_P4_ITRF20_2023p8_coords) %% 1) * 60
+
+#calculate fractional seconds
+BAL_OCC1_P4_ITRF20_2023p8_coords_SS_frac = (BAL_OCC1_P4_ITRF20_2023p8_coords_MM_frac %% 1) * 60
+
+# grab the LAT DMS
+LAT_DMS = c(BAL_OCC1_P4_ITRF20_2023p8_coords_DD[2], floor(BAL_OCC1_P4_ITRF20_2023p8_coords_MM_frac[2]), BAL_OCC1_P4_ITRF20_2023p8_coords_SS_frac[2])
+
+# grab the LON DMS
+LON_DMS = c(BAL_OCC1_P4_ITRF20_2023p8_coords_DD[1], floor(BAL_OCC1_P4_ITRF20_2023p8_coords_MM_frac[1]), BAL_OCC1_P4_ITRF20_2023p8_coords_SS_frac[1])
+
+#compare with that published by CSRS
+
+# CSRS Reported Position  # LAT -40° 20' 10.50903"    LON 175° 48' 44.88974"
+# Calculated from above   # LAT -40° 20' 10.50901"    LON 175° 48' 44.88972"
+
+#what does this related to in m
+
+CALC_COORD = BAL_OCC1_P4_ITRF20_2023p8 %>% st_transform(2193) %>% st_coordinates() 
+CALC_COORD %>% formatC(digits = 15)
+
+published_coords_LAT = -1 * (40 + 20/60 + 10.50903/3600)
+published_coords_LON = (175 + 48/60 + 44.88972/3600)
+
+PUB_COORD = st_as_sf(data.frame(LAT = published_coords_LAT, LON = published_coords_LON), coords = c("LON", "LAT"), crs = 4326) %>% 
+  st_transform(2193) %>% st_coordinates() 
+
+PUB_COORD %>% formatC(digits=15)
+
+DIFF_LON = PUB_COORD[1] - CALC_COORD[1]
+DIFF_LAT = PUB_COORD[2] - CALC_COORD[2]
+
+print(paste("The difference in Latitude  (Published ITRF20 - WGS84) = ", DIFF_LAT, "m"))
+print(paste("The difference in Longitude (Published ITRF20 - WGS84) = ", DIFF_LON, "m"))
+
+
+#conclusion from this analysis: that the difference between ITRF20 (2023.8) and WGS84 is less than 1mm in both LAT and LON
 
 ```
 
