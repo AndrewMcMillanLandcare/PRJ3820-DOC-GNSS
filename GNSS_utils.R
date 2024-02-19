@@ -1328,11 +1328,12 @@ qual_based_soln = function(POS_data_input = NULL, POS_ffn = NULL, known_coords =
   testmode = F
   
   if (testmode){
-    POS_ffn = "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/data/Field-Test-Ballance-20231108/SOLUTIONS/BAL_OCC1_R10-Rover_RTK-CORS-WRPA_180MIN.pos"
+    POS_ffn = "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/data/FINAL_SOLUTIONS/JVD-OCC6-P3-PPK-DNVK.POS"
     POS_data_input = NULL
     known_coords = c(1838917.665,	5531119.762,	102.372)
     known_coords = c(1839374.859,	5531494.916,	79.451)
-    
+    known_coords = get_peg_loc(3)
+    POS_FMT=5
     
   }
   
@@ -1399,24 +1400,60 @@ calc_POS_data_stats = function(POS_data, known_coords=NULL){
   
   
   POS_data_fixed_only = POS_data %>% filter(Q==1)
+  max_ratio_ix = which.max(POS_data_fixed_only$ratio)
   
-  IAR_BEST_fixed_LON = POS_data_fixed_only$LON[which.max(POS_data_fixed_only$ratio)]
-  IAR_BEST_fixed_LAT = POS_data_fixed_only$LAT[which.max(POS_data_fixed_only$ratio)]
+  IAR_BEST_fixed_LON = POS_data_fixed_only$LON[max_ratio_ix]
+  IAR_BEST_fixed_LAT = POS_data_fixed_only$LAT[max_ratio_ix]
+  # IAR_BEST_fixed_ELE = POS_data_fixed_only$LAT[which.max(POS_data_fixed_only$ratio)]
   
-  IAR_BEST_fixed_sdne= POS_data_fixed_only$sdne[which.max(POS_data_fixed_only$ratio)]
+  IAR_BEST_fixed_melap= POS_data_fixed_only$melap[max_ratio_ix]
+  IAR_BEST_fixed_ratio= POS_data_fixed_only$ratio[max_ratio_ix]
   
-  IAR_BEST_fixed_sdn= POS_data_fixed_only$sdn[which.max(POS_data_fixed_only$ratio)]
-  IAR_BEST_fixed_sde= POS_data_fixed_only$sde[which.max(POS_data_fixed_only$ratio)]
+  
+  IAR_BEST_fixed_sdne= POS_data_fixed_only$sdne[max_ratio_ix]
+  
+  IAR_BEST_fixed_sdn= POS_data_fixed_only$sdn[max_ratio_ix]
+  IAR_BEST_fixed_sde= POS_data_fixed_only$sde[max_ratio_ix]
   IAR_BEST_fixed_sd_hz = sqrt(IAR_BEST_fixed_sdn^2 + IAR_BEST_fixed_sde^2)
   
+  
+  IAR_TOP10_AVG = POS_data %>% 
+    group_by(Q) %>% 
+    slice_max(ratio, n = 10) %>% 
+    summarise(ratio_avg = mean(ratio))
+  
+  
+  
+  thresh = 20
+  IAR_THRESH_SSOLN = POS_data %>% 
+    filter(ratio >= thresh) %>% 
+    summarise(DEL_LON = mean(DEL_LON  , na.rm = T),
+              DEL_LAT = mean(DEL_LAT  , na.rm = T ))
+    
+    
+  
+  
+  
+  ratio_top10_avg_fixed = IAR_TOP10_AVG %>% filter(Q==1) %>% pull(ratio_avg)
+  if (length(ratio_top10_avg_fixed)==0){ratio_top10_avg_fixed=NA}
+  ratio_top10_avg_float = IAR_TOP10_AVG %>% filter(Q==2) %>% pull(ratio_avg)
+  if (length(ratio_top10_avg_float)==0){ratio_top10_avg_float=NA}
+  
   if (!is.null(known_coords)){
+    
+    
+    
+    
     POS_data_all_stats = POS_data %>% 
       mutate(
         LON_dev = LON - mean(LON, na.rm = T),
         LAT_dev = LAT - mean(LAT, na.rm = T),
+        ELE_dev = DEL_ELE - mean(DEL_ELE, na.rm = T),
         
         LON_dev_sq = LON_dev^2,
         LAT_dev_sq = LAT_dev^2,
+        ELE_dev_sq = ELE_dev^2
+        
       ) %>% 
       summarise(
         LAT_avg = mean(LAT),
@@ -1429,22 +1466,33 @@ calc_POS_data_stats = function(POS_data, known_coords=NULL){
         DEL_LAT_avg = mean(DEL_LAT),
         DEL_LON_sd = sd(DEL_LON),
         DEL_LAT_sd = sd(DEL_LAT),
+        
+        DEL_ELE_avg = mean(DEL_ELE),
+        DEL_ELE_sd = sd(DEL_ELE),
+        
+        
         KNOWN_POS_X = known_coords[1],
         KNOWN_POS_Y = known_coords[2],
+        KNOWN_POS_Z = known_coords[3],
+        
         M_ACC = sqrt( (LON_avg-KNOWN_POS_X)^2 + (LAT_avg-KNOWN_POS_Y)^2  ),
         M_PREC = 2*sqrt(DEL_LON_sd^2 + DEL_LAT_sd^2),
         
         LON_avg_single = mean(LON[Q==5]),
         LAT_avg_single = mean(LAT[Q==5]),
+        ELE_avg_single = mean(Ht_ell[Q==5]),
         
         LON_avg_fixed = mean(LON[Q==1]),
         LAT_avg_fixed = mean(LAT[Q==1]),
+        ELE_avg_fixed = mean(Ht_ell[Q==1]),
         
         LON_avg_float = mean(LON[Q==2]),
         LAT_avg_float = mean(LAT[Q==2]),
+        ELE_avg_float = mean(Ht_ell[Q==2]),
         
         LON_avg_fixed_or_float = mean(LON[Q==1|Q==2]),
         LAT_avg_fixed_or_float = mean(LAT[Q==1|Q==2]),
+        ELE_avg_fixed_or_float = mean(Ht_ell[Q==1|Q==2]),
         
         M_ACC_all = sqrt( (LON_avg-KNOWN_POS_X)^2 + (LAT_avg-KNOWN_POS_Y)^2  ),
         M_PREC_all = M_PREC,
@@ -1464,21 +1512,32 @@ calc_POS_data_stats = function(POS_data, known_coords=NULL){
         OCC_TM = (as.numeric(TM_END) - as.numeric(TM_STT))/3600,
         DEL_LON_fixed_avg = mean(DEL_LON[Q==1]),
         DEL_LAT_fixed_avg = mean(DEL_LAT[Q==1]),
+        DEL_ELE_fixed_avg = mean(DEL_ELE[Q==1]),
+        DEL_ELE_fixed_med = median(DEL_ELE[Q==1]),
         DEL_LON_fixed_sd = sd(DEL_LON[Q==1]),
         DEL_LAT_fixed_sd = sd(DEL_LAT[Q==1]),
+        DEL_ELE_fixed_sd = sd(DEL_ELE[Q==1]),
         DEL_LON_float_avg = mean(DEL_LON[Q==2]),
         DEL_LAT_float_avg = mean(DEL_LAT[Q==2]),
+        DEL_ELE_float_avg = mean(DEL_ELE[Q==2]),
+        DEL_ELE_float_med = median(DEL_ELE[Q==2]),
         DEL_LON_float_sd = sd(DEL_LON[Q==2]),
         DEL_LAT_float_sd = sd(DEL_LAT[Q==2]),
+        DEL_ELE_float_sd = sd(DEL_ELE[Q==2]),
         DEL_LON_single_avg = mean(DEL_LON[Q==5]),
         DEL_LAT_single_avg = mean(DEL_LAT[Q==5]),
+        DEL_ELE_single_avg = mean(DEL_ELE[Q==5]),
+        DEL_ELE_single_med = median(DEL_ELE[Q==5]),
         DEL_LON_single_sd = sd(DEL_LON[Q==5]),
         DEL_LAT_single_sd = sd(DEL_LAT[Q==5]),
+        DEL_ELE_single_sd = sd(DEL_ELE[Q==5]),
         
         RMSEx_fixed = sqrt(sum(  LON_dev_sq[Q==1])),
         RMSEy_fixed = sqrt(sum(  LAT_dev_sq[Q==1])),
         DRMS_fixed = sqrt(0.5 * (RMSEx_fixed^2 + RMSEy_fixed^2)),
         DRMS2_fixed = 2 * DRMS_fixed,
+        RMS_ELE_fixed = sd(DEL_ELE[Q==1]),
+        RMS2_ELE_fixed = 2 * RMS_ELE_fixed,
         # M_PREC_fixed_old = M_PREC_fixed,
         # M_PREC_fixed = DRMS2_fixed,
         
@@ -1489,6 +1548,8 @@ calc_POS_data_stats = function(POS_data, known_coords=NULL){
         RMSEy_float = sqrt(sum(  LAT_dev_sq[Q==2], na.rm = T)),
         DRMS_float = sqrt(0.5 * (RMSEx_float^2 + RMSEy_float^2)),
         DRMS2_float = 2 * DRMS_float,
+        RMS_ELE_float = sd(DEL_ELE[Q==2]),
+        RMS2_ELE_float = 2 * RMS_ELE_float,
         # M_PREC_float_old = M_PREC_float,
         # M_PREC_float = DRMS2_float,
         
@@ -1496,11 +1557,30 @@ calc_POS_data_stats = function(POS_data, known_coords=NULL){
         RMSEy_single = sqrt(sum(  LAT_dev_sq[Q==5])),
         DRMS_single = sqrt(0.5 * (RMSEx_single^2 + RMSEy_single^2)),
         DRMS2_single = 2 * DRMS_single,
+        RMS_ELE_single = sd(ELE_dev_sq[Q==5]),
+        RMS2_ELE_single = 2 * RMS_ELE_single,
         # M_PREC_single_old = M_PREC_single,
         # M_PREC_single = DRMS2_single,
         
+        Ratio_all_95_pct = quantile(ratio, .95),
+        Ratio_all_75_pct = quantile(ratio, .75),
+        Ratio_all_50_pct = quantile(ratio, .50),
+        Ratio_all_25_pct = quantile(ratio, .25),
+        Ratio_all_05_pct = quantile(ratio, .0),
+        Ratio_float_95_pct = quantile(ratio[Q==2], .95),
+        Ratio_float_75_pct = quantile(ratio[Q==2], .75),
+        Ratio_float_50_pct = quantile(ratio[Q==2], .50),
+        Ratio_float_25_pct = quantile(ratio[Q==2], .25),
+        Ratio_float_05_pct = quantile(ratio[Q==2], .0),
+        Ratio_fixed_95_pct = quantile(ratio[Q==1], .95),
+        Ratio_fixed_75_pct = quantile(ratio[Q==1], .75),
+        Ratio_fixed_50_pct = quantile(ratio[Q==1], .50),
+        Ratio_fixed_25_pct = quantile(ratio[Q==1], .25),
+        Ratio_fixed_05_pct = quantile(ratio[Q==1], .05),
         
-        
+        Ratio_all_max = max(ratio[Q==2]),
+        Ratio_float_max = max(ratio[Q==2]),
+        Ratio_fixed_max = max(ratio[Q==1]),
         
       ) %>% 
       mutate(
@@ -1509,14 +1589,24 @@ calc_POS_data_stats = function(POS_data, known_coords=NULL){
         CEP = 0.62*DEL_LAT_float_sd + 0.56* DEL_LAT_float_sd,
         R95 = 2.08 * CEP,
         
-        IAR_BEST_fixed_LON = IAR_BEST_fixed_LON,
-        IAR_BEST_fixed_LAT = IAR_BEST_fixed_LAT,
+        IAR_BEST_fixed_LON = ifelse(length(IAR_BEST_fixed_LON)==1,IAR_BEST_fixed_LON,NA),
+        IAR_BEST_fixed_LAT = ifelse(length(IAR_BEST_fixed_LAT)==1,IAR_BEST_fixed_LAT,NA),
         
         IAR_BEST_fixed_DEL_LON = IAR_BEST_fixed_LON - KNOWN_POS_X,
         IAR_BEST_fixed_DEL_LAT = IAR_BEST_fixed_LAT - KNOWN_POS_Y,
         
         M_ACC_IAR_BEST = sqrt(IAR_BEST_fixed_DEL_LON^2 + IAR_BEST_fixed_DEL_LAT^2),
-        M_PREC_IAR_BEST = 2*IAR_BEST_fixed_sd_hz
+        M_PREC_IAR_BEST = ifelse(length(IAR_BEST_fixed_sd_hz)==1,2*IAR_BEST_fixed_sd_hz,NA),
+        MELAP_IAR_BEST = ifelse(length(IAR_BEST_fixed_sd_hz)==1,IAR_BEST_fixed_melap,NA),
+        RATIO_IAR_BEST = ifelse(length(IAR_BEST_fixed_sd_hz)==1,IAR_BEST_fixed_ratio,NA),
+        
+        ratio_top10_avg_fixed = ratio_top10_avg_fixed,
+        ratio_top10_avg_float = ratio_top10_avg_float,
+        
+        ratio_thresh_avg_DEL_LON = IAR_THRESH_SSOLN$DEL_LON,
+        ratio_thresh_avg_DEL_LAT = IAR_THRESH_SSOLN$DEL_LAT,
+        ratio_thresh_avg_M_ACC = sqrt(ratio_thresh_avg_DEL_LON^2 + ratio_thresh_avg_DEL_LAT^2)
+        
         
       )
     
@@ -1549,20 +1639,30 @@ calc_POS_data_stats = function(POS_data, known_coords=NULL){
 # a funtion to add columns based on known coordinates
 add_diff_from_known = function(POS_DF, known_coords){
   
+  NZVD_TO_GRS80 = 14.872
+  
+  
   elev_known = length(known_coords)==3
+  
+  if (elev_known){KNOWN_ELEV = known_coords[3] }else{KNOWN_ELEV=NA}
+  
+  
   
   POS_DF_mdf01 = POS_DF %>% 
     mutate(
       KNOWN_POS_X = known_coords[1],
       KNOWN_POS_Y = known_coords[2],
-      KNOWN_POS_Z = ifelse(elev_known, known_coords[3], NA),
+      KNOWN_POS_Z = KNOWN_ELEV,
       DEL_LON = LON - KNOWN_POS_X,
       DEL_LAT = LAT - KNOWN_POS_Y,
-      DEL_ELE = ifelse(elev_known,Ht_ell - KNOWN_POS_Z,NA),
+      DEL_ELE = Ht_ell - KNOWN_POS_Z,
       DEL_LON_SQ =  DEL_LON^2,
       DEL_LAT_SQ =  DEL_LAT^2,
       DEL_LATLON = sqrt(DEL_LON_SQ + DEL_LAT_SQ)
     )
+  
+  # write_csv(POS_DF_mdf01, paste0(datadir, "POS_ELE.csv"))
+  
   
   return(POS_DF_mdf01)
 }
@@ -1781,6 +1881,10 @@ anal_POS_generic = function(POS_ffn, known_coords = NULL, POS_FMT = NULL){
   print(paste("ACCURACY +/- PREC (FIXED)          = ",formatC(SOLN_QBASED$M_ACC_fixed,digits = 4), " +/- ", formatC(SOLN_QBASED$M_PREC_fixed,digits = 4), "m"))
   print(paste("ACCURACY +/- PREC (FIXED or FLOAT) = ",formatC(SOLN_QBASED$M_ACC_fixed_or_float,digits = 4), " +/- ", formatC(SOLN_QBASED$M_PREC_fixed_or_float,digits = 4), "m"))
   
+  print(paste("ELEVATION ACCURACY +/- PREC (FLOAT) = ",formatC(SOLN_QBASED$DEL_ELE_float_avg ,digits = 4), " +/- ", formatC(SOLN_QBASED$RMS2_ELE_float,digits = 4), "m"))
+  
+  
+  
   print(paste("PREC = ",formatC(SOLN_QBASED$M_PREC,digits = 4)))
   print(paste("PERCENT SINGLE = ",formatC(SOLN_QBASED$PERCENT_SINGLE,digits = 4),"%"))
   print(paste("PERCENT FIXED = ",formatC(SOLN_QBASED$PERCENT_FIXED,digits = 4),"%"))
@@ -1789,7 +1893,38 @@ anal_POS_generic = function(POS_ffn, known_coords = NULL, POS_FMT = NULL){
   print(paste("DRMS2_float_v1 = ",formatC(SOLN_QBASED$DRMS2_float,digits = 4)," m"))
   print(paste("DRMS2_float_v1 = ",formatC(SOLN_QBASED$DRMS2_v2_float,digits = 4)," m"))
   
+  print(paste("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"))
   
+  if (!is.na(SOLN_QBASED$IAR_BEST_fixed_DEL_LON)){
+    
+    print(paste("IAR-based Best Solution - DEL LON= ",formatC(SOLN_QBASED$IAR_BEST_fixed_DEL_LON,digits = 4)," m"))
+    print(paste("IAR-based Best Solution - DEL LAT= ",formatC(SOLN_QBASED$IAR_BEST_fixed_DEL_LAT,digits = 4)," m"))
+    print(paste("IAR-based Best Solution - M_ACC= ",formatC(SOLN_QBASED$M_ACC_IAR_BEST,digits = 4)," m"))
+    print(paste("IAR-based Best Solution = M_PREC",formatC(SOLN_QBASED$M_PREC_IAR_BEST,digits = 4)," m"))
+    print(paste("IAR-based Best Solution = highest value of ratio",formatC(SOLN_QBASED$RATIO_IAR_BEST,digits = 4)))
+    print(paste("IAR-based Best Solution found at",formatC(SOLN_QBASED$MELAP_IAR_BEST,digits = 4)," minutes"))
+    
+    print(paste("ratio fixed 95th Percentile",formatC(SOLN_QBASED$Ratio_fixed_95_pct,digits = 4)))
+    print(paste("ratio fixed 75th Percentile",formatC(SOLN_QBASED$Ratio_fixed_75_pct,digits = 4)))
+    print(paste("ratio fixed 50th Percentile",formatC(SOLN_QBASED$Ratio_fixed_50_pct,digits = 4)))
+    print(paste("ratio fixed 25th Percentile",formatC(SOLN_QBASED$Ratio_fixed_25_pct,digits = 4)))
+    print(paste("ratio fixed 5th Percentile",formatC(SOLN_QBASED$Ratio_fixed_05_pct,digits = 4)))
+    
+    print(paste("ratio float 95th Percentile",formatC(SOLN_QBASED$Ratio_float_95_pct,digits = 4)))
+    print(paste("ratio float 75th Percentile",formatC(SOLN_QBASED$Ratio_float_75_pct,digits = 4)))
+    print(paste("ratio float 50th Percentile",formatC(SOLN_QBASED$Ratio_float_50_pct,digits = 4)))
+    print(paste("ratio float 25th Percentile",formatC(SOLN_QBASED$Ratio_float_25_pct,digits = 4)))
+    print(paste("ratio float 5th Percentile",formatC(SOLN_QBASED$Ratio_float_05_pct,digits = 4)))
+    
+    print(paste("Accuracy based on threshold filtering of ratio = ", SOLN_QBASED$ratio_thresh_avg_M_ACC))
+  } 
+  
+  
+  else{
+    print("Did not find a good solution ....")
+  }
+  
+  print(paste("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"))
   
   print(paste(
     formatC(SOLN_QBASED$LON_avg,digits = 11),
@@ -1818,15 +1953,18 @@ get_peg_loc = function(pegnum){
   
   KnownPegPositions_binary_ffn = "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/data/KnownPegPositions.RDS"
   
-  pegloctab = readRDS(KnownPegPositions_binary_ffn)
+  pegloctab = readRDS(KnownPegPositions_binary_ffn) %>% 
+    mutate(PEG_ELEV_WGS84 = ELEVATION + 14.8725) # convert elevation from NZVD2016 to GRS80
+  
+  
   
   PegName = paste0("BAL-P", pegnum)
   
   peglocrow_E = pegloctab %>% filter(Peg==PegName) %>% pull(EASTING)
   peglocrow_N = pegloctab %>% filter(Peg==PegName) %>% pull(NORTHING)
-  peglocrow_elev= pegloctab %>% filter(Peg==PegName) %>% pull(ELEVATION)
+  peglocrow_Z= pegloctab %>% filter(Peg==PegName) %>% pull(PEG_ELEV_WGS84)
   
-  pegcoords = c(peglocrow_E, peglocrow_N)
+  pegcoords = c(peglocrow_E, peglocrow_N, peglocrow_Z)
   
   print(formatC(pegcoords, digits = 12))
   
@@ -1855,6 +1993,19 @@ proc_emlid_pos = function(eml_llh_pos_ffn, pegnum){
 
 proc_pos = function(REC, OCC,PEG,MET){
   
+  testmode = F
+  
+  if (testmode){
+    
+    REC = "JVD"
+    OCC = 6
+    PEG = 3
+    MET = "PPK-DNVK"
+    
+    
+  }
+  
+  
   
   POS_ffn_stub = "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/data/FINAL_SOLUTIONS/"
   
@@ -1863,7 +2014,9 @@ proc_pos = function(REC, OCC,PEG,MET){
   
   file.exists(POS_ffn)
   
-  X = anal_POS_generic(POS_ffn = POS_ffn, known_coords = get_peg_loc(PEG),POS_FMT = 5)
+  KNWN_COORDS =  get_peg_loc(PEG)
+  
+  X = anal_POS_generic(POS_ffn = POS_ffn, known_coords =KNWN_COORDS,POS_FMT = 5)
 }
 
 proc_pos_seg = function(REC, OCC,PEG,MET, HH, MM){
@@ -2046,14 +2199,22 @@ collate_ppk = function(MET, OCC_TBL_ffn){
     
     # i=1
     cPOS_dn = "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/data/FINAL_SOLUTIONS/"
-    cPOS_fn = OCC_TBL_filt$POS_ffn[i]
-    cPOS_ffn = paste0(cPOS_dn, cPOS_fn)
-    file.exists(cPOS_ffn)
+    # cPOS_fn = OCC_TBL_filt$POS_ffn[i]
+    
     
     cREC = OCC_TBL_filt$REC[i]
     cOCC = OCC_TBL_filt$OCC[i]
     cPEG = OCC_TBL_filt$PEG[i]
     cMET = MET
+    
+    
+    cPOS_fn = paste0(cREC,"-OCC",cOCC,"-P",cPEG,"-",cMET,".POS")
+    cPOS_ffn = paste0(cPOS_dn, cPOS_fn)
+    file.exists(cPOS_ffn)
+    
+    
+    
+    
     
     print("=====================================================================================")
     print("=====================================================================================")
@@ -2079,6 +2240,10 @@ collate_ppk = function(MET, OCC_TBL_ffn){
   }
   return(SOLN_COLLATED)
 }
+
+
+
+
 
 
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -2172,8 +2337,108 @@ plot_solution = function(POS_fn=NULL, ratio_th = 15){
   
 }
 
+#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+### get_peg_loc_deg
+#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 
+get_peg_loc_deg = function(pegnum){
+  
+  locn_NZTM_XY = get_peg_loc(pegnum)
+  
+  pegloc_sf = st_as_sf(
+    data.frame(X = locn_NZTM_XY[1], Y = locn_NZTM_XY[2]),
+    coords = c("X", "Y"),
+    crs = 2193)
+  
+  pegloc_sf_WGS_84 = pegloc_sf %>% 
+    st_transform(crs = 4326)
+  
+  pegloc_sf_WGS_84_coords = st_coordinates(pegloc_sf_WGS_84)
+  
+  
+  
+}
+
+#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+### calc_accuracy
+#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+calc_accuracy = function(LAT_DD, LON_DD, pegnum){
+  # 
+  # LON_DD = 175.812501889
+  # LAT_DD = -40.336172049
+  # pegnum = 1
+  
+  meas_xy_2193_m = st_as_sf(
+    data.frame(X = LON_DD, Y = LAT_DD),
+    coords = c("X", "Y"),
+    crs = 4326) %>% 
+    st_transform(2193) %>% 
+    st_coordinates()
+  
+  pegloc = get_peg_loc(pegnum)
+  
+  
+  print(paste0("MEASD_X = ", formatC(meas_xy_2193_m[1], digits=10), "     MEASD_Y = ", formatC(meas_xy_2193_m[2], digits=10)))
+  print(paste0("KNOWN_X = ", formatC(pegloc[1], digits=10),      "     KNOWN_Y = ", formatC(pegloc[2], digits=10)))
+  
+  print(paste0("DEL_X = ", formatC(pegloc[1]-meas_xy_2193_m[1], digits=10),      "     DEL_Y = ", formatC(pegloc[2]-meas_xy_2193_m[2], digits=10)))
+  print(paste0("M_ACC = ", formatC( sqrt(  (pegloc[1]-meas_xy_2193_m[1])^2 + (pegloc[2]-meas_xy_2193_m[2])^2 ) , digits = 10) ) ) 
+  
+  
+  
+}
 
 
+#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+### proc_all_and_collate
 
+#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+proc_all_and_collate = function(){
+  # 
+  
+  # now collate all the data
+  
+  MET_curr = "PPK-DNVK"
+  
+  PPK_DNVK_COLLATED_TMP = collate_ppk(MET=MET_curr, OCC_TBL_ffn) 
+  PPK_DNVK_COLLATED = OCC_TBL %>% 
+    mutate(join_key = paste0(REC,"-OCC",OCC,"-P",PEG, "-",MET_curr,".POS")) %>% 
+    left_join(PPK_DNVK_COLLATED_TMP, by = c("join_key"="POS_fn" )) %>% 
+    mutate(MET = MET_curr)
+  
+  write_csv(PPK_DNVK_COLLATED, paste0(datadir, "PPK_DNVK_COLL.csv"))
+  
+  
+  MET_curr = "PPK-WRPA"
+  
+  PPK_WRPA_COLLATED_TMP = collate_ppk(MET=MET_curr, OCC_TBL_ffn) 
+  PPK_WRPA_COLLATED = OCC_TBL %>% 
+    mutate(join_key = paste0(REC,"-OCC",OCC,"-P",PEG, "-",MET_curr,".POS")) %>% 
+    left_join(PPK_WRPA_COLLATED_TMP, by = c("join_key"="POS_fn" )) %>% 
+    mutate(MET =MET_curr)
+  
+  write_csv(PPK_WRPA_COLLATED, paste0(datadir, "PPK_WRPA_COLL.csv"))
+  
+  MET_curr = "PPK-R10"
+  
+  PPK_R10_COLLATED_TMP = collate_ppk(MET=MET_curr, OCC_TBL_ffn) 
+  PPK_R10_COLLATED = OCC_TBL %>% 
+    mutate(join_key = paste0(REC,"-OCC",OCC,"-P",PEG, "-",MET_curr,".POS")) %>% 
+    left_join(PPK_R10_COLLATED_TMP, by = c("join_key"="POS_fn" )) %>% 
+    mutate(MET = MET_curr)
+  
+  write_csv(PPK_R10_COLLATED, paste0(datadir, "PPK_R10_COLL.csv"))
+  
+  PPK_ALL_COLLATED = PPK_DNVK_COLLATED %>% 
+    bind_rows(PPK_WRPA_COLLATED) %>% 
+    bind_rows(PPK_R10_COLLATED)%>% 
+    mutate(
+      OCC_corr = ifelse(OCC<4, OCC, OCC-1))
+  
+  write_csv(PPK_ALL_COLLATED, paste0(datadir, "PPK_ALL_COLL.csv")) 
+  
+  return(PPK_ALL_COLLATED)
+}

@@ -50,6 +50,7 @@ if (Current_PC == "EANZ-DT01-Linux") {
 
 datadir = paste0(root, "data/")
 plotdir = paste0(root, "plots/")
+tabledir = paste0(root, "tables/")
 
 
 
@@ -2901,6 +2902,81 @@ SOLN = proc_pos("EML", 8, 6, "PPK-DNVK")
 SOLN = proc_pos("JVD", 9, 8, "PPK-DNVK")
 SOLN = proc_pos("EML", 9, 1, "PPK-DNVK")
 
+```
+
+
+
+#Investigate why JVD OCC8 so inaccurate
+
+```{r}
+POS_ffn = "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/data/FINAL_SOLUTIONS/JVD-OCC8-P1-PPK-DNVK.POS"
+
+
+D = read_POS(POS_ffn, 5)
+
+D_BEST = D[which.max(D$ratio),]
+
+
+
+
+
+
+SOLN = proc_pos("JVD", 1,6, "PPK-DNVK")
+SOLN = proc_pos("JVD", 2, 4, "PPK-DNVK")
+SOLN = proc_pos("JVD", 3, 7, "PPK-DNVK")
+
+SOLN = proc_pos("JVD", 5, 5, "PPK-DNVK")
+SOLN = proc_pos("JVD", 6, 3, "PPK-DNVK")
+SOLN = proc_pos("JVD", 7, 2, "PPK-DNVK")
+SOLN = proc_pos("JVD", 8, 1, "PPK-DNVK")
+SOLN = proc_pos("JVD", 9, 8, "PPK-DNVK")
+
+
+names(SOLN)
+
+BESTSOLN_LON = SOLN$IAR_BEST_fixed_LON
+BESTSOLN_LAT = SOLN$IAR_BEST_fixed_LAT
+
+BESTSOLN_DEL_LON = SOLN$IAR_BEST_fixed_DEL_LON
+BESTSOLN_DEL_LAT = SOLN$IAR_BEST_fixed_DEL_LAT
+BESTSOLN_IAR_BEST = SOLN$M_ACC_IAR_BEST
+
+
+avgs_flt = D %>% filter(Q==2) %>% summarise(Lat_DD = mean(Lat_DD),Lon_DD = mean(Lon_DD))
+
+calc_accuracy(avgs_flt$Lat_DD, avgs_flt$Lon_DD, 1)
+calc_accuracy(D_BEST$Lat_DD, D_BEST$Lon_DD, 1)
+
+
+XY_KNOWN = get_peg_loc(1)
+
+
+
+D_conv = convert_crs_df(D, src_crs = 4326, dst_crs = 2193, 
+                          input_coord_labs = c("Lon_DD", "Lat_DD"),
+                          output_coord_labs = c("LON", "LAT"))
+  
+  
+  
+
+
+D_mdf = D_conv %>% mutate(
+  DEL_X = XY_KNOWN[1] - LON,
+  DEL_Y = XY_KNOWN[2] - LAT,
+  M_ACC = sqrt(DEL_X^2 + DEL_Y^2)
+  
+)
+
+
+D_mdf_smy = D_mdf %>% group_by(Q) %>% summarise(DEL_X = mean(DEL_X), DEL_Y = mean(DEL_Y), M_ACC = mean(M_ACC))
+
+
+
+ggplot(D_mdf) + geom_point(aes(melap, M_ACC, color = as.character(Q)) )
+ggplot(D_mdf) + geom_point(aes(melap, ratio, color = as.character(Q)) )
+
+
+
 #=================================================
 ```
 
@@ -3164,6 +3240,51 @@ PPK_ALL_COLLATED_R10 = PPK_ALL_COLLATED %>%
 
 ```
 
+
+#=====================================
+#   -----------------------------------------------------------------
+# PROC and COLLATE ALL
+#   -----------------------------------------------------------------
+#=====================================
+
+
+```{r}
+
+cMET = "PPK-WRPA"
+SOLN = proc_pos("JVD", 1, 6, cMET)
+SOLN = proc_pos("JVD", 2, 4, cMET)
+SOLN = proc_pos("JVD", 3, 7, cMET)
+SOLN = proc_pos("JVD", 5, 5, cMET)
+SOLN = proc_pos("JVD", 6, 3, cMET)
+SOLN = proc_pos("JVD", 7, 2, cMET)
+SOLN = proc_pos("JVD", 8, 1, cMET)
+SOLN = proc_pos("JVD", 9, 8, cMET)
+
+
+
+
+din = "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/data/FINAL_SOLUTIONS/"
+POS_ffn = paste0(din, "JVD-OCC5-P5-PPK-R10-v03.POS")
+anal_POS_generic(POS_ffn, known_coords = get_peg_loc(5), POS_FMT = 5)
+  
+
+
+tic()
+PPK_ALL_COLLATED = proc_all_and_collate()
+toc()
+
+write_csv(PPK_ALL_COLLATED, paste0(datadir, "PPK_ALL_COLL.csv"))
+
+
+PPK_ALL_COLLATED = read_csv(paste0(datadir, "PPK_ALL_COLL.csv"))
+
+
+
+
+names(PPK_ALL_COLLATED)
+```
+
+
 #=====================================
 #   -----------------------------------------------------------------
 # ANALYSE THE FINAL COLLATED DATA 
@@ -3174,6 +3295,33 @@ PPK_ALL_COLLATED_R10 = PPK_ALL_COLLATED %>%
 ```{r}
 
 
+g = ggplot(PPK_ALL_COLLATED) + geom_point(aes(OCC, M_ACC_float, color = MET)) + facet_wrap(~REC) 
+g = g + lims(y = c(0,50))
+g
+
+
+g = ggplot(PPK_ALL_COLLATED) + geom_point(aes(OCC, M_ACC_float, color = MET)) + facet_wrap(~REC) 
+g = g + lims(y = c(0,5))
+g
+
+
+
+
+PPK_ALL_COLLATED_filt = PPK_ALL_COLLATED %>% select(1:5, contains("ACC"), contains("ercen"), contains("ratio"))
+
+names(PPK_ALL_COLLATED_filt)
+
+
+PPK_ALL_COLLATED_mfilt = PPK_ALL_COLLATED %>% filter(MET == "PPK-DNVK" & REC=="JVD")
+
+g = ggplot(   PPK_ALL_COLLATED_mfilt) + geom_point(aes(Ratio_fixed_max, ratio_thresh_avg_M_ACC, color = MET)) #+ facet_wrap(~REC, scales = "fixed") 
+# g = g + lims(y = c(0,50))
+g
+
+
+p = ggplotly(g)
+
+p
 
 ```
 
@@ -3334,9 +3482,12 @@ PPK_ALL_COLLATED_DNVK_mdf = PPK_ALL_COLLATED_DNVK %>%
   mutate(
     DEL_LON_TBC = LON_TBC - KNOWN_POS_X,
     DEL_LAT_TBC = LAT_TBC - KNOWN_POS_Y,
-    DEL_LON_2_plot = ifelse(is.na(DEL_LON_TBC), DEL_LON_float_avg,DEL_LON_TBC ),
-    DEL_LAT_2_plot = ifelse(is.na(DEL_LAT_TBC), DEL_LAT_float_avg,DEL_LAT_TBC ),
-    M_PREC_2_plot = ifelse(is.na(M_PREC_TBC ), M_PREC_float,M_PREC_TBC  ))
+    # DEL_LON_2_plot = ifelse(is.na(DEL_LON_TBC), DEL_LON_float_avg,DEL_LON_TBC ),
+    # DEL_LAT_2_plot = ifelse(is.na(DEL_LAT_TBC), DEL_LAT_float_avg,DEL_LAT_TBC ),
+    # M_PREC_2_plot = ifelse(is.na(M_PREC_TBC ), M_PREC_float,M_PREC_TBC  ))
+    DEL_LON_2_plot = DEL_LON_float_avg,
+    DEL_LAT_2_plot = DEL_LAT_float_avg,
+    M_PREC_2_plot = M_PREC_float)
 
 PPK_ALL_COLLATED_DNVK_mdf$DEL_LON_TBC
 
@@ -3403,7 +3554,38 @@ if (specdim){
 
 ```
 
-~~~~~~~~~~~~~~~~ #
+
+
+# Table 4003 
+```{r}
+
+
+
+PPK_ALL_COLLATED_DNVK_mdf_2_plot_ffn = paste0(datadir, "PPK_ALL_COLLATED_DNVK_mdf_2_plot.RDS")
+PPK_ALL_COLLATED_DNVK_mdf_2_plot =readRDS(PPK_ALL_COLLATED_DNVK_mdf_2_plot_ffn)
+
+Table4003 =PPK_ALL_COLLATED_DNVK_mdf_2_plot %>% 
+  mutate(
+    M_ACC=sqrt(DEL_LON_2_plot^2 + DEL_LAT_2_plot^2),
+    M_PREC_sq = M_PREC_2_plot^2
+  ) %>%
+  group_by(RECEIVER) %>% 
+  summarise(
+    M_ACC = mean(M_ACC),
+    M_PREC = sd(M_PREC_2_plot),
+    n = length(M_PREC_2_plot)
+  )
+
+Table4003_ffn = paste0(tabledir, "Table4003.csv")
+write_csv(Table4003, Table4003_ffn)
+
+
+
+
+```
+
+
+#~~~~~~~~~~~~~~~~ #
 # Figure 4004 -  PPK-DNVK-Accuracy-for-each-occupation-by-receiver-fixed
 # ~~~~~~~~~~~~~~~~ #
 
@@ -3694,6 +3876,34 @@ if (specdim){
 ```
 
 
+# Table 5003 
+```{r}
+
+
+
+PPK_ALL_COLLATED_WRPA_mdf_2_plot_ffn = paste0(datadir, "PPK_ALL_COLLATED_WRPA_mdf_2_plot.RDS")
+PPK_ALL_COLLATED_WRPA_mdf_2_plot =readRDS(PPK_ALL_COLLATED_WRPA_mdf_2_plot_ffn)
+
+Table5003 =PPK_ALL_COLLATED_WRPA_mdf_2_plot %>% 
+  mutate(
+    M_ACC=sqrt(DEL_LON_2_plot^2 + DEL_LAT_2_plot^2),
+    M_PREC_sq = M_PREC_2_plot^2
+  ) %>%
+  group_by(RECEIVER) %>% 
+  summarise(
+    M_ACC = mean(M_ACC),
+    M_PREC = sd(M_PREC_2_plot),
+    n = length(M_PREC_2_plot)
+  )
+
+Table5003_ffn = paste0(tabledir, "Table5003.csv")
+write_csv(Table5003, Table5003_ffn)
+
+
+
+
+```
+
 
 # ~~~~~~~~~~~~~~~~ #
 # Figure 6001 -  PPK-WRPA Accuracy-vs-Rcvr-by-Peg
@@ -3824,7 +4034,7 @@ PPK_ALL_COLLATED_SMY = PPK_ALL_COLLATED %>%
   mutate(CorrectionSource = case_when(
     MET=="PPK-DNVK" ~ "CORS-DNVK",
     MET=="PPK-WRPA" ~ "CORS-WRPA",
-    MET=="PPK-R10" ~ "CORS-R10",
+    MET==cMET ~ "CORS-R10",
   )) %>% 
   dplyr::select(OCC_UID, RECEIVER,CorrectionSource, OCC, OCC_corr, PEG, M_ACC_fixed, M_PREC_fixed, M_ACC_float, M_PREC_float) %>% 
   group_by(RECEIVER, CorrectionSource) %>% 
@@ -3859,16 +4069,16 @@ fig_ffn = paste0(plotdir, fignum,"-", figdesc, ".", figfmt)
 
 alp = .3
 
-axlim = 1.5
+axlim = 10.01
 
-
+replace_RTKLIB_with_TBC = T
 
 
 #replace the R10 data that was processed with Emlid Stuidio with the R10 data processed with TBC
 TBC_results_ffn = paste0(datadir, "TBC_results.csv")
 
 TBC_results = read_csv(TBC_results_ffn) %>% 
-  filter(str_detect(MET, "PPK-R10")) %>% 
+  filter(str_detect(MET, "PPK-R10") & ANL_ID != 108) %>% 
   dplyr::select(
     MET_TBC = MET,
     REC_TBC = REC,
@@ -3883,6 +4093,10 @@ TBC_results = read_csv(TBC_results_ffn) %>%
   ) %>% 
   filter(OCC_TBC != 3)
 
+options(digits=10)
+print(paste(TBC_results$LON_TBC))
+
+
 PPK_ALL_COLLATED_R10_mdf = PPK_ALL_COLLATED_R10 %>% 
   mutate(
     join_key = paste0(toupper(REC),"-OCC",OCC,"-P", PEG)
@@ -3891,17 +4105,24 @@ PPK_ALL_COLLATED_R10_mdf = PPK_ALL_COLLATED_R10 %>%
   mutate(
     DEL_LON_TBC = LON_TBC - KNOWN_POS_X,
     DEL_LAT_TBC = LAT_TBC - KNOWN_POS_Y,
-    DEL_LON_2_plot = ifelse(is.na(DEL_LON_TBC), DEL_LON_float_avg,DEL_LON_TBC ),
-    DEL_LAT_2_plot = ifelse(is.na(DEL_LAT_TBC), DEL_LAT_float_avg,DEL_LAT_TBC ),
-    M_PREC_2_plot_tmp = ifelse(is.na(M_PREC_TBC ), M_PREC_float,M_PREC_TBC  )) %>% 
-  mutate(
+    DEL_LON_2_plot = ifelse(!is.na(DEL_LON_TBC) & replace_RTKLIB_with_TBC, DEL_LON_TBC, DEL_LON_float_avg ),
+    DEL_LAT_2_plot = ifelse(!is.na(DEL_LAT_TBC) & replace_RTKLIB_with_TBC, DEL_LON_TBC, DEL_LAT_float_avg ),
+    M_PREC_2_plot_tmp = ifelse(!is.na(M_PREC_TBC) & replace_RTKLIB_with_TBC, M_PREC_TBC,M_PREC_float  ),
+    M_ACC_2_plot = sqrt(DEL_LON_2_plot^2 + DEL_LAT_2_plot^2),
     M_PREC_2_plot = ifelse(OCC==7 & REC=="R10-Rover", NA, M_PREC_2_plot_tmp),
     OCC_corr = ifelse(OCC<4,OCC,OCC-1)     )
 
-
-PPK_ALL_COLLATED_R10_mdf %>% dplyr::select(join_key,REC,M_PREC_2_plot) %>% filter(REC=="R10-Rover")
-
-names(PPK_ALL_COLLATED_R10_mdf)
+# 
+# options(digits=10)
+# PPK_ALL_COLLATED_R10_mdf_filt =PPK_ALL_COLLATED_R10_mdf %>% filter(REC == "R10-Rover")
+# print(paste(PPK_ALL_COLLATED_R10_mdf_filt$DEL_LAT_TBC))
+# print(paste(PPK_ALL_COLLATED_R10_mdf_filt$DEL_LAT_2_plot))
+# print(paste(PPK_ALL_COLLATED_R10_mdf_filt$M_ACC_2_plot))
+# 
+# 
+# PPK_ALL_COLLATED_R10_mdf %>% dplyr::select(join_key,REC,M_PREC_2_plot) %>% filter(REC=="R10-Rover")
+# 
+# names(PPK_ALL_COLLATED_R10_mdf)
 
 PPK_ALL_COLLATED_R10_mdf$M_PREC_2_plot[which(PPK_ALL_COLLATED_R10_mdf$OCC==7 & PPK_ALL_COLLATED_R10_mdf$REC=="R10-Rover")] = 0
 
@@ -3960,7 +4181,33 @@ if (specdim){
 
 ```
 
+# Table 6003 
+```{r}
 
+
+
+PPK_ALL_COLLATED_R10_mdf_2_plot_ffn = paste0(datadir, "PPK_ALL_COLLATED_R10_mdf_2_plot.RDS")
+PPK_ALL_COLLATED_R10_mdf_2_plot =readRDS(PPK_ALL_COLLATED_R10_mdf_2_plot_ffn)
+
+Table6003 =PPK_ALL_COLLATED_R10_mdf_2_plot %>% 
+  mutate(
+    M_ACC=sqrt(DEL_LON_2_plot^2 + DEL_LAT_2_plot^2),
+    M_PREC_sq = M_PREC_2_plot^2
+  ) %>%
+  group_by(RECEIVER) %>% 
+  summarise(
+    M_ACC = mean(M_ACC),
+    M_PREC = sd(M_PREC_2_plot),
+    n = length(M_PREC_2_plot)
+  )
+
+Table6003_ffn = paste0(tabledir, "Table6003.csv")
+write_csv(Table6003, Table6003_ffn)
+
+
+
+
+```
 
 # ~~~~~~~~~~~~~~~~ #
 # Figure 6004 -  PPK-R10-Accuracy-for-each-occupation-by-receiver-fixed
@@ -5326,6 +5573,147 @@ if (specdim){
 
 ```
 
+
+
+#==============================================================
+# Elevation ------------------------
+#==============================================================
+
+
+
+```{r}
+
+
+PPK_ALL_COLLATED = read_csv(paste0(datadir, "PPK_ALL_COLL.csv"))
+
+names(PPK_ALL_COLLATED)
+
+
+DEL_ELE_float_avg
+
+RMS2_ELE_single
+
+
+
+```
+
+
+# ~~~~~~~~~~~~~~~~ #
+# Figure 10001 -  Elevation accuracy
+# ~~~~~~~~~~~~~~~~ #
+
+```{r}
+fignum = 10001
+figdesc = "Elevation-Accuracy"
+figfmt = "png"
+fig_ffn = paste0(plotdir, fignum,"-", figdesc, ".", figfmt)
+
+PPK_ALL_COLLATED_ELE = PPK_ALL_COLLATED %>% 
+  mutate(M_PREC_SQ = M_PREC*M_PREC,
+         SOL_TYPE = case_when(
+           MET == "PPK-DNVK" ~ "PP-DNVK",
+           MET == "PPK-WRPA" ~ "PP-WRPA",
+           MET == "PPK-R10" ~ "PP-R10",
+           MET == "PPP" ~ "CSRS-PPP"
+         )) %>% 
+  filter(!str_detect(RECEIVER, "1172")) %>% 
+  dplyr::select(RECEIVER, OCC_corr, SOL_TYPE, Z_ACC = DEL_ELE_float_med, Z_PREC = RMS2_ELE_float)
+
+
+PPK_ALL_COLLATED_ELE$SOL_TYPE = factor(PPK_ALL_COLLATED_ELE$SOL_TYPE,
+                                       levels = c("PP-R10", "PP-DNVK", "PP-WRPA", "CSRS-PPP"))
+
+
+g = ggplot(PPK_ALL_COLLATED_ELE)
+g = g + geom_point(aes(OCC_corr, Z_ACC, color = SOL_TYPE),position = position_dodge(width = .3) ) + facet_wrap(~RECEIVER)
+g = g + geom_errorbar(aes(x = OCC_corr, ymin = Z_ACC-Z_PREC , ymax = Z_ACC+Z_PREC,  color = SOL_TYPE ), width = .2,position = position_dodge(width = .3) )
+g = g + labs(x = "GNSS receiver", y = "Accuracy (m)", color = "Solution type")
+g
+g = g + theme_bw() +
+  theme(
+    strip.background =element_rect(fill="white"),
+    axis.title =  element_text(size = 12),
+    legend.position = "bottom")
+# axis.title = element_text(size = 16))
+g
+
+WD = 28
+HT = 8/18*WD
+
+# specdim = F
+
+specdim = F
+
+
+
+
+if (specdim){
+  ggsave(filename = fig_ffn, plot = g, width = WD, height = HT, units = "cm", bg = "white")
+} else {
+  ggsave(filename = fig_ffn, plot = g,  units = "cm", bg = "white")
+}
+
+
+
+```
+
+
+
+# ~~~~~~~~~~~~~~~~ #
+# Figure 10002 -  Elevation accuracy Summary
+# ~~~~~~~~~~~~~~~~ #
+
+```{r}
+fignum = 10002
+figdesc = "Elevation-Accuracy-Summary"
+figfmt = "png"
+fig_ffn = paste0(plotdir, fignum,"-", figdesc, ".", figfmt)
+
+PPK_ALL_COLLATED_ELE_smy = PPK_ALL_COLLATED_ELE %>% 
+  mutate(Z_PREC_sq = Z_PREC^2) %>% 
+  group_by(RECEIVER, SOL_TYPE) %>% 
+  summarise(
+    Z_ACC = mean(Z_ACC, na.rm = T),
+    Z_PREC_sq_avg = mean(Z_PREC_sq, na.rm = T)
+  ) %>% 
+  mutate(Z_PREC = sqrt(Z_PREC_sq_avg))
+
+# PPK_ALL_COLLATED_ELE$SOL_TYPE = factor(PPK_ALL_COLLATED_ELE$SOL_TYPE,
+# levels = c("PP-R10", "PP-DNVK", "PP-WRPA", "CSRS-PPP"))
+
+
+g = ggplot(PPK_ALL_COLLATED_ELE_smy)
+g = g + geom_point(aes(SOL_TYPE, Z_ACC, color = SOL_TYPE),position = position_dodge(width = .3) ) + facet_wrap(~RECEIVER)
+g = g + geom_errorbar(aes(x = SOL_TYPE, ymin = Z_ACC-Z_PREC , ymax = Z_ACC+Z_PREC,  color = SOL_TYPE ), width = .2,position = position_dodge(width = .3) )
+g = g + labs(x = "GNSS receiver", y = "Elevation accuracy (m)", color = "Solution type")
+g
+g = g + theme_bw() +
+  theme(
+    strip.background =element_rect(fill="white"),
+    axis.title =  element_text(size = 12),
+    legend.position = "bottom")
+# axis.title = element_text(size = 16))
+g
+
+WD = 28
+HT = 8/18*WD
+
+# specdim = F
+
+specdim = F
+
+
+
+
+if (specdim){
+  ggsave(filename = fig_ffn, plot = g, width = WD, height = HT, units = "cm", bg = "white")
+} else {
+  ggsave(filename = fig_ffn, plot = g,  units = "cm", bg = "white")
+}
+
+
+
+```
 
 
 
