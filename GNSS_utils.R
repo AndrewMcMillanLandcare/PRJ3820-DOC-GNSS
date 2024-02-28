@@ -14,6 +14,20 @@ library(pdftools)
 #source("C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/Code/R/PRJ3820-DOC-GNSS/GNSS_utils.R")
 
 
+
+FSlash<- function(path = "clipboard") {
+  y <- if (path == "clipboard") {
+    readClipboard()
+  } else {
+    cat("Please enter the path:\n\n")
+    readline()
+  }
+  x <- chartr("\\", "/", y)
+  writeClipboard(x)
+  return(x)
+}
+
+
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 ### crs_convert
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -1424,7 +1438,7 @@ calc_POS_data_stats = function(POS_data, known_coords=NULL){
   
   
   
-  thresh = 20
+  thresh = 50
   IAR_THRESH_SSOLN = POS_data %>% 
     filter(ratio >= thresh) %>% 
     summarise(DEL_LON = mean(DEL_LON  , na.rm = T),
@@ -2398,7 +2412,9 @@ calc_accuracy = function(LAT_DD, LON_DD, pegnum){
 
 proc_all_and_collate = function(){
   # 
-  
+  #read the OCC_TBL - the list of all the occupations
+  OCC_TBL_ffn = paste0(datadir, "OCC_TBL.RDS")
+  OCC_TBL = readRDS(OCC_TBL_ffn) 
   # now collate all the data
   
   MET_curr = "PPK-DNVK"
@@ -2411,6 +2427,7 @@ proc_all_and_collate = function(){
   
   write_csv(PPK_DNVK_COLLATED, paste0(datadir, "PPK_DNVK_COLL.csv"))
   
+  PPK_DNVK_COLLATED %>% pull(MET) %>% unique()
   
   MET_curr = "PPK-WRPA"
   
@@ -2420,17 +2437,33 @@ proc_all_and_collate = function(){
     left_join(PPK_WRPA_COLLATED_TMP, by = c("join_key"="POS_fn" )) %>% 
     mutate(MET =MET_curr)
   
+  
+  PPK_WRPA_COLLATED %>% pull(MET) %>% unique()
+  
+  
   write_csv(PPK_WRPA_COLLATED, paste0(datadir, "PPK_WRPA_COLL.csv"))
+  
+  PPK_WRPA_COLLATED$M_ACC_float
+  
+  
   
   MET_curr = "PPK-R10"
   
   PPK_R10_COLLATED_TMP = collate_ppk(MET=MET_curr, OCC_TBL_ffn) 
+  
+  
+  
   PPK_R10_COLLATED = OCC_TBL %>% 
     mutate(join_key = paste0(REC,"-OCC",OCC,"-P",PEG, "-",MET_curr,".POS")) %>% 
     left_join(PPK_R10_COLLATED_TMP, by = c("join_key"="POS_fn" )) %>% 
     mutate(MET = MET_curr)
   
+  PPK_R10_COLLATED %>% pull(MET) %>% unique()
+  
+  
   write_csv(PPK_R10_COLLATED, paste0(datadir, "PPK_R10_COLL.csv"))
+  
+  PPK_R10_COLLATED$M_ACC_float
   
   PPK_ALL_COLLATED = PPK_DNVK_COLLATED %>% 
     bind_rows(PPK_WRPA_COLLATED) %>% 
@@ -2438,7 +2471,270 @@ proc_all_and_collate = function(){
     mutate(
       OCC_corr = ifelse(OCC<4, OCC, OCC-1))
   
+  
+  PPK_ALL_COLLATED %>% pull(MET) %>% unique()
+  
+  
+  
   write_csv(PPK_ALL_COLLATED, paste0(datadir, "PPK_ALL_COLL.csv")) 
   
   return(PPK_ALL_COLLATED)
 }
+
+
+
+
+# ================================================================== #
+# procpos
+
+# - The official version of this is in the calc_GNSS_pos.R script which
+# is in the DOC-GNSS-Processing project
+
+
+
+
+# ================================================================== #
+
+# Top Level Function to process a POS file produced by Emlid Studio 
+
+
+# simplest way of running: from R console, type: procpos()
+
+
+# FileName:      if left as NULL (default), the user will be prompted to select a 
+#                 *.POS file using the computers file management system.
+#                Otherwise, the user can enter a character string of the full file path
+#                (using forward slashes to separate directories)
+
+# writeResults: a boolean to be set to TRUE (or T) if you want to write 
+#                the summary stats file to the same directory as the input file set 
+
+# showMap:      a boolean to be set to TRUE (or T) if the viewer wants a map to be displayed
+
+
+
+
+procpos = function(FileName = NULL, writeResults = T, showMap = F, addRaw = T){
+  
+  
+  
+  #Prompt the Use for the location of the POS file
+  if (is.null(FileName)){
+    
+    setwd("C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/data/FINAL_SOLUTIONS/")
+    
+    
+    POS_file_to_process = file.choose()
+  } else {
+    POS_file_to_process = FileName
+  }
+  
+  
+  print("================================================")
+  print(paste("Processing", basename(POS_file_to_process)))
+  print("================================================")
+  
+  #Process the POS file
+  POS_STATS = GetPosStats(POS_file_to_process)
+  
+  if (writeResults){
+    Output_filename = paste0(
+      tools::file_path_sans_ext(POS_file_to_process),
+      "_summary.csv")
+    
+    POS_STATS_2_write = POS_STATS %>% 
+      dplyr::select(-Q) %>% 
+      mutate(Filename = basename(POS_file_to_process)) %>% 
+      dplyr::select(Filename, everything())
+    
+    write_csv(POS_STATS_2_write, Output_filename)
+    print(paste("Summary data written to", Output_filename))
+    print("================================================")
+    print("================================================")
+    
+  }
+  
+  #plot the final solution on a ESRI World View Aerial Image
+  
+  if (showMap){
+    
+    POS_STATS_2_write_sf = POS_STATS_2_write %>% 
+      st_as_sf(coords = c("meanX", "meanY"), crs = 2193)
+    
+    mapviewOptions(basemaps = c("Esri.WorldImagery"))
+    A = mapview(POS_STATS_2_write_sf, color = "red", col.region = "yellow")
+    A
+  }
+  
+  # if (addRaw){
+  #   
+  #   POS_data = read_POS(POS_file_to_process, FMT_OPT = 5)
+  #  
+  #   #create a spatial simple feature object 
+  #   POS_data_sf = POS_data %>% 
+  #     st_as_sf(coords = c("Lon_DD", "Lat_DD"), crs = 4326) 
+  #   
+  #   #transform the coordinates to the chosen target CRS
+  #   POS_data_sf_NZTM_2_plot_on_map = POS_data_sf %>% 
+  #     st_transform(crs = 2193) %>% 
+  #     filter(Q==2)
+  #   
+  #   mapviewOptions(basemaps = c("Esri.WorldImagery"))
+  #   B = mapview(POS_data_sf_NZTM_2_plot_on_map)
+  #   A+B
+  #   
+  #   
+  #   
+  #   
+  #   
+  #   
+  # }
+  #
+  
+  return(POS_STATS)
+}
+
+
+# ================================================================== #
+# GetPosStats - The official version of this is in the calc_GNSS_pos.R script which
+# is in the DOC-GNSS-Processing project
+# ================================================================== #
+
+
+# A function to read the POS file and calculate the statistics from the float solution
+
+GetPosStats = function(POS_Filename, target_CRS = 2193){
+  
+  # dn = "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/data/FINAL_SOLUTIONS/"
+  # fn = "JVD-OCC5-P5-PPK-R10.pos"
+  # target_CRS = 2193
+  #POS_Filename = paste0(dn,fn)
+  
+  POS_data = read_POS(POS_Filename, FMT_OPT = 5)
+  
+  
+  #create a spatial simple feature object 
+  POS_data_sf = POS_data %>% 
+    st_as_sf(coords = c("Lon_DD", "Lat_DD"), crs = 4326) 
+  
+  #transform the coordinates to the chosen target CRS
+  POS_data_sf_NZTM = POS_data_sf %>% 
+    st_transform(crs = target_CRS)
+  
+  #extract the coordinates as a data frame
+  POS_data_sf_NZTM_coordinates = st_coordinates(POS_data_sf_NZTM) %>% 
+    as_tibble()
+  
+  #convert the simple feature back to a data frame and add the NZTM Coordinates
+  POS_data_df_NZTM = POS_data_sf_NZTM %>% 
+    st_set_geometry(NULL) %>% 
+    mutate(X = POS_data_sf_NZTM_coordinates$X, Y = POS_data_sf_NZTM_coordinates$Y)
+  
+  
+  
+  
+  
+  
+  # filter the data for just the float solution
+  POS_stats = POS_data_df_NZTM %>% 
+    group_by(Q) %>% 
+    summarise(
+      meanX = mean(X),
+      meanY = mean(Y),
+      meanZ = mean(Ht_ell),
+      sigmaX = sd(X),
+      sigmaY = sd(Y),
+      sigmaZ = sd(Ht_ell),
+      DRMS = sqrt(sigmaX^2 + sigmaY^2),
+      DRMS2 = 2* DRMS,
+      nSolutions = length(Q)
+      
+    ) 
+  
+  
+  
+  
+  
+  
+  POS_stats_float_only = POS_stats %>% filter(Q==2)
+  
+  POS_stats_4326_coords  = POS_stats_float_only %>% 
+    mutate(
+      meanX_2193 = meanX,
+      meanY_2193 = meanY) %>% 
+    st_as_sf(coords = c("meanX_2193", "meanY_2193"), crs = 2193) %>% 
+    st_transform(4326) %>% 
+    st_coordinates() %>% 
+    as_tibble()
+  
+  POS_stats_float_only = POS_stats_float_only %>% 
+    mutate(
+      LonDD = POS_stats_4326_coords$X,
+      LatDD = POS_stats_4326_coords$Y,
+    )
+  
+  #print results
+  
+  print(paste("--------------------------------------------------------------------"))
+  print(paste("Float Solution"))
+  print(paste("--------------------------------------------------------------------"))
+  
+  print(paste("Easting: ", formatC(POS_stats_float_only$meanX, digits = 3, format = "f"), 
+              "m, Northing: ", formatC(POS_stats_float_only$meanY, digits = 3, format = "f"), "m, ",
+              "Elevation (Ht above ellipsoid) :", formatC(POS_stats_float_only$meanZ, digits = 3, format = "f"), "m"))
+  
+  print(paste("Latitude = ", formatC(POS_stats_float_only$LatDD, digits = 7, format = "f"), 
+              "Longitude = ", formatC(POS_stats_float_only$LonDD, digits = 7, format = "f")))
+  
+  
+  print(paste("Sigma X: ", formatC(POS_stats_float_only$sigmaX, digits = 3, format = "f"),"m,  ", 
+              "Sigma Y: ", formatC(POS_stats_float_only$sigmaY, digits = 3, format = "f"),"m,  ",
+              "Sigma Z: ", formatC(POS_stats_float_only$sigmaZ, digits = 3, format = "f"), "m"))
+  
+  print(paste("--------------------------------------------------------------------"))
+  
+  return(POS_stats_float_only)
+  
+  
+}
+
+
+procpospeg = function(POS_ffn = NULL, PegNum){
+  
+  
+  # PegNum = 7
+  PegLoc = get_peg_loc(PegNum)
+  
+  if (is.null(POS_ffn)){
+    SOLN = procpos()
+  }else{
+    SOLN = procpos(POS_ffn)
+  }
+  
+  
+  DEL_X = SOLN$meanX - PegLoc[1]
+  DEL_Y = SOLN$meanY - PegLoc[2]
+  DEL_Z = SOLN$meanZ - PegLoc[3]
+  
+  M_ACC = sqrt(DEL_X^2 + DEL_Y^2)
+  M_PREC = SOLN$DRMS2 
+  
+  print(paste("******************************************************************"))
+  print(paste("Accuracy = ", M_ACC, "m, Precision = ", M_PREC, " m (2DRMS)"))
+  print(paste("******************************************************************"))
+  
+  SOLN$M_ACC = M_ACC
+  SOLN$M_PREC = M_PREC
+  
+  
+  return(SOLN)
+  
+  
+  
+  
+  
+  
+}
+
+
+
