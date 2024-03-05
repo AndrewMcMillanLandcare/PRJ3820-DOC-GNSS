@@ -80,6 +80,11 @@ occPalette <- c("#999999", "#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2"
 univ_axlim = T
 axlim_X003 = 3.01
 
+
+
+OCC_TBL_ffn = paste0(datadir, "OCC_TBL.RDS")
+
+
 ```
 
 
@@ -2185,7 +2190,7 @@ if (specdim){
 ```
 
 # ~~~~~~~~~~~~~~~~ #
-# Figure 4003 -  PPK-DNVK-Accuracy-for-each-occupation-by-receiver-float
+# Figure 4003 (FIG 13) -  PPK-DNVK-Accuracy-for-each-occupation-by-receiver-float
 # ~~~~~~~~~~~~~~~~ #
 
 ```{r}
@@ -2516,7 +2521,7 @@ if (specdim){
 
 
 # ~~~~~~~~~~~~~~~~ #
-# Figure 5003 -  PPK-WRPA-Accuracy-for-each-occupation-by-receiver
+# Figure 5003 (FIG 14) -  PPK-WRPA-Accuracy-for-each-occupation-by-receiver
 # ~~~~~~~~~~~~~~~~ #
 
 ```{r}
@@ -2777,7 +2782,7 @@ if (specdim){
 ```
 
 # ~~~~~~~~~~~~~~~~ #
-# Table 6003 -  PPK-R10-Accuracy-for-each-occupation-by-receiver
+# Table 6003 (FIG12) -  PPK-R10-Accuracy-for-each-occupation-by-receiver
 # ~~~~~~~~~~~~~~~~ #
 
 ```{r}
@@ -3779,7 +3784,7 @@ ggsave(filename = fig_ffn, plot = g,  units = "cm", bg = "white")
 
 
 # ~~~~~~~~~~~~~~~~ #
-# Figure 9022 -  Fixed-v-float
+# Figure 9022 (FIG 11) -  Fixed-v-float
 # ~~~~~~~~~~~~~~~~ #
 
 ```{r}
@@ -3820,7 +3825,7 @@ axlim = 3
 # g = g + lims(y = c(-1.8,axlim))
 
 
-g = g + labs(x = "GNSS Receiver", y = "Positional accuracy (m)", color = "Solution type")
+g = g + labs(x = "GNSS receiver", y = "Positional accuracy (m)", color = "Solution type")
 
 g = g + theme_bw() + theme(axis.text.x = element_text(angle = 90), legend.position = "bottom", strip.background =element_rect(fill="white"))
 g
@@ -3899,7 +3904,7 @@ PPK_ALL_COLLATED_filt_smy = PPK_ALL_COLLATED_filt %>%
 ```
 
 # ~~~~~~~~~~~~~~~~ #
-# Figure 9005 -  Effect-of-longer-baseline
+# Figure 9005 (FIG 15)-  Effect-of-longer-baseline
 # ~~~~~~~~~~~~~~~~ #
 
 ```{r}
@@ -3917,13 +3922,31 @@ g = g + geom_point(aes(RECEIVER, M_ACC_float_mean , color = CORS), position = po
 
 g = g + geom_errorbar(aes(x = RECEIVER,ymin = M_ACC_float_mean - M_ACC_float_prec_prop , ymax = M_ACC_float_mean + M_ACC_float_prec_prop, color = CORS), width = .4,position = position_dodge(width = dodge_dist))
 
-g = g + labs(x = "GNSS Receiver", y = "Positional accuracy (m)", color = "CORS Station (baseline length)")
+g = g + labs(x = "GNSS receiver", y = "Positional accuracy (m)", color = "CORS station (baseline length)")
 
 g = g + theme_minimal() + theme(axis.text.x = element_text(angle = 90), legend.position = "bottom")
 g
 
 
-ggsave(filename = fig_ffn, plot = g,  units = "cm", bg = "white")
+
+WD = 14
+HT = 2/3*WD
+
+specdim = T
+
+
+
+
+if (specdim){
+  ggsave(filename = fig_ffn, plot = g, width = WD, height = HT, units = "cm", bg = "white")
+} else {
+  ggsave(filename = fig_ffn, plot = g,  units = "cm", bg = "white")
+}
+
+
+
+
+
 
 
 ```
@@ -4379,20 +4402,22 @@ g
 g = g + theme_bw() +
   theme(
     strip.background =element_rect(fill="white"),
-    axis.title =  element_text(size = 16),
-    axis.text =  element_text(size = 12),
-    legend.text =  element_text(size = 12),
-    legend.title = element_text(size = 12),
-    legend.position = "bottom")
+    legend.position = 'bottom',
+    axis.text.x = element_text(angle=90))
+
+    # axis.title =  element_text(size = 16),
+    # axis.text =  element_text(size = 12),
+    # legend.text =  element_text(size = 12),
+    # legend.title = element_text(size = 12),
+    # legend.position = "bottom")
 # axis.title = element_text(size = 16))
 g
 
-WD = 28
-HT = 0.8*WD
 
-# specdim = F
+WD = 14
+HT = 2/3*WD
 
-specdim = F
+specdim = T
 
 
 
@@ -4402,7 +4427,6 @@ if (specdim){
 } else {
   ggsave(filename = fig_ffn, plot = g,  units = "cm", bg = "white")
 }
-
 
 
 ```

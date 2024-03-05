@@ -16,10 +16,36 @@ knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
 library(readxl)
 library(plotly)
-
+library(pals)
 
 root_dn = "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/"
 plotdir = paste0(root_dn, "plots/")
+
+dpal = distinct_palette(n = 25, pal = "brewerPlus", add = "lightgrey")
+
+c25 <- c(
+  "dodgerblue2", "#E31A1C", # red
+  "green4",
+  "#6A3D9A", # purple
+  "#FF7F00", # orange
+  "black", "gold1",
+  "skyblue2", "#FB9A99", # lt pink
+  "palegreen2",
+  "#CAB2D6", # lt purple
+  "#FDBF6F", # lt orange
+  "maroon", "orchid1", "deeppink1", "blue1", 
+  "darkturquoise", "green1", "yellow4", "yellow3",
+  "darkorange4", "brown"
+)
+
+
+
+c25_nm = alphabet()
+c25_nm = polychrome()
+c25_nm = glasbey()
+c25_nm = kelly()
+c25 = unname(c25_nm)
+
 
 ```
 
@@ -38,10 +64,14 @@ ffn = paste0(dn,fn)
 
 AccTab_Data = readxl::read_excel(ffn, sheet = "Accuracy Table", "B1:S100")
 
+
+Ref_color_key = readxl::read_excel(ffn, sheet = "Ref-color-key", "C2:E21")
+
+AccTab_Data = AccTab_Data %>% 
+  left_join(Ref_color_key, by = 'Ref')
+
 AccTab_Data_ffn = paste0(dn, "AccTab_Data.RDS" )
 saveRDS(AccTab_Data, AccTab_Data_ffn)
-
-
 
 ```
 
@@ -58,7 +88,7 @@ AccTab_Data = readRDS(AccTab_Data_ffn)
 AccTab_Data_mdf = AccTab_Data %>% 
   arrange(acc_avg) %>% 
   mutate(idx = 1:nrow(.)) %>% 
-  select(idx, acc_avg, Ref,occ_tm = `Occupation time`, rec = `Receiver Make/Model` ) %>% 
+  select(idx, acc_avg, Ref,occ_tm = `Occupation time`, rec = `Receiver Make/Model`, col =  colhex) %>% 
   filter(!is.na(Ref))
   
 
@@ -80,8 +110,11 @@ figfmt = "png"
 fig_ffn = paste0(plotdir, fignum,"-", figdesc, ".", figfmt)
 
 
+COLORS = AccTab_Data_mdf$col
+
 g = ggplot(AccTab_Data_mdf) + geom_point(aes(acc_avg, idx, color = Ref, size = occ_tm), alpha=0.5) + scale_x_reverse()
 g = g + labs(x = "accuracy (RMSE) [m]", y = "", size = "Occupation time [min]", color = "Reference")
+g = g + scale_color_manual(values = COLORS)
 g = g + lims(x = c(20, 0), y = c(0,60))
 g = g + theme_minimal()
 g = g + theme(axis.text.y = element_blank())
@@ -90,7 +123,7 @@ g
 
 ggsave(filename = fig_ffn, plot = g, width = 16, height = 18, units = "cm", bg = "white")
 
-ggplotly(g)
+# ggplotly(g)
 
 ```
 
@@ -110,10 +143,10 @@ figfmt = "png"
 fig_ffn = paste0(plotdir, fignum,"-", figdesc, ".", figfmt)
 
 
-AccTab_Data_mdf2 = AccTab_Data_mdf %>% filter(acc_avg<2.0 & !is.na(occ_tm))
+AccTab_Data_mdf2 = AccTab_Data_mdf %>% filter(acc_avg<20.0 & !is.na(occ_tm))
 
 
-g = ggplot(AccTab_Data_mdf2, aes(acc_avg, idx, color = rec, size = occ_tm)) + 
+g = ggplot(AccTab_Data_mdf2, aes(acc_avg, idx, color = Ref, size = occ_tm)) + 
   geom_point(alpha=0.5) 
 g
 
