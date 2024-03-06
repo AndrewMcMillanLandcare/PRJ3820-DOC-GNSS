@@ -21,7 +21,7 @@ library(pals)
 root_dn = "C:/Users/McMillanAn/OneDrive - MWLR/Projects/PRJ3820-DOC-GNSS/"
 plotdir = paste0(root_dn, "plots/")
 
-dpal = distinct_palette(n = 25, pal = "brewerPlus", add = "lightgrey")
+# dpal = distinct_palette(n = 25, pal = "brewerPlus", add = "lightgrey")
 
 c25 <- c(
   "dodgerblue2", "#E31A1C", # red
@@ -42,8 +42,8 @@ c25 <- c(
 
 c25_nm = alphabet()
 c25_nm = polychrome()
-c25_nm = glasbey()
-c25_nm = kelly()
+# c25_nm = glasbey()
+# c25_nm = kelly()
 c25 = unname(c25_nm)
 
 
@@ -62,13 +62,13 @@ ffn = paste0(dn,fn)
 
 
 
-AccTab_Data = readxl::read_excel(ffn, sheet = "Accuracy Table", "B1:S100")
+AccTab_Data = readxl::read_excel(ffn, sheet = "Accuracy Table", "B1:U70")
 
-
-Ref_color_key = readxl::read_excel(ffn, sheet = "Ref-color-key", "C2:E21")
-
-AccTab_Data = AccTab_Data %>% 
-  left_join(Ref_color_key, by = 'Ref')
+# 
+# Ref_color_key = readxl::read_excel(ffn, sheet = "Ref-color-key", "C2:G21")
+# 
+# AccTab_Data = AccTab_Data %>% 
+#   left_join(Ref_color_key, by = 'Ref')
 
 AccTab_Data_ffn = paste0(dn, "AccTab_Data.RDS" )
 saveRDS(AccTab_Data, AccTab_Data_ffn)
@@ -85,10 +85,13 @@ AccTab_Data_ffn = paste0(dn, "AccTab_Data.RDS" )
 
 AccTab_Data = readRDS(AccTab_Data_ffn)
 
+
+
+
 AccTab_Data_mdf = AccTab_Data %>% 
   arrange(acc_avg) %>% 
   mutate(idx = 1:nrow(.)) %>% 
-  select(idx, acc_avg, Ref,occ_tm = `Occupation time`, rec = `Receiver Make/Model`, col =  colhex) %>% 
+  select(idx, acc_avg, Ref,occ_tm = `Occupation time`, rec = `Receiver Make/Model`, col =  colhex, coldesc, edgecol) %>% 
   filter(!is.na(Ref))
   
 
@@ -99,7 +102,7 @@ AccTab_Data_mdf = AccTab_Data %>%
 
 
 # ~~~~~~~~~~~~~~~~ #
-# Figure 1001 - GNSS positioning accuracy plot
+# Figure 1001 (FIG 5) - GNSS positioning accuracy plot
 # ~~~~~~~~~~~~~~~~ #
 
 ```{r}
@@ -110,14 +113,53 @@ figfmt = "png"
 fig_ffn = paste0(plotdir, fignum,"-", figdesc, ".", figfmt)
 
 
-COLORS = AccTab_Data_mdf$col
 
-g = ggplot(AccTab_Data_mdf) + geom_point(aes(acc_avg, idx, color = Ref, size = occ_tm), alpha=0.5) + scale_x_reverse()
-g = g + labs(x = "accuracy (RMSE) [m]", y = "", size = "Occupation time [min]", color = "Reference")
-g = g + scale_color_manual(values = COLORS)
+
+# AccTab_Data_mdf$Ref = factor(AccTab_Data_mdf$Ref, levels = unique(AccTab_Data_mdf$Ref))
+# AccTab_Data_mdf$Ref = factor(AccTab_Data_mdf$Ref, levels = unique(AccTab_Data_mdf$Ref))
+
+
+
+saveRDS(Ref_color_key, paste0(datadir, 'RefColPal.RDS'))
+Ref_color_key = readRDS(paste0(datadir, 'RefColPal.RDS'))
+
+
+
+
+COLORS = Ref_color_key$colhex
+COLORS_DESC = Ref_color_key$coldesc
+EDGECOLORS = Ref_color_key$edgecol
+
+levels(AccTab_Data_mdf$Ref)
+
+COL_REF_TBL = data.frame(Ref = levels(AccTab_Data_mdf$Ref), COLORS = COLORS, COLORS_DESC = COLORS_DESC)
+
+Refs_Unique = unique(AccTab_Data_mdf$Ref)
+
+# AccTab_Data_mdf$Ref
+# COLORS[9] = "#FFFFFF"
+shapelist = c(rep(1:6,11),1:3)
+
+g = ggplot(AccTab_Data_mdf) + geom_point(aes(acc_avg, idx, color = Ref,  size = occ_tm),  alpha=1) + scale_x_reverse()
+g = g + labs(x = "horizontal accuracy (m)", y = "", size = "Occupation time [min]", color = "Reference")
+
+
+# g = g + scale_color_manual(values = EDGECOLORS)  + scale_fill_manual(values = COLORS)
+
+FULL_REF_COL_TBL = data.frame(Refs = as.character(Refs_Unique), Cols = COLORS) %>% as_tibble %>% dplyr::arrange(Refs)
+
+
+
+# g = g + scale_fill_manual(values = COLORS, labels = Refs_Unique)  #+ scale_fill_manual(values = COLORS)
+g = g + scale_color_manual(values = COLORS, labels = Refs_Unique)
+
+
 g = g + lims(x = c(20, 0), y = c(0,60))
 g = g + theme_minimal()
+g = g + guides(color = guide_legend(override.aes = list(size=5), reverse=T))
+# g = g + guides(color = 'none')
 g = g + theme(axis.text.y = element_blank())
+
 g
 
 
@@ -132,7 +174,7 @@ ggsave(filename = fig_ffn, plot = g, width = 16, height = 18, units = "cm", bg =
 
 
 # ~~~~~~~~~~~~~~~~ #
-# Figure 1002 - GNSS positioning accuracy plot
+# Figure 1002 (FIG 6)- GNSS positioning accuracy plot
 # ~~~~~~~~~~~~~~~~ #
 
 ```{r}
@@ -145,24 +187,35 @@ fig_ffn = paste0(plotdir, fignum,"-", figdesc, ".", figfmt)
 
 AccTab_Data_mdf2 = AccTab_Data_mdf %>% filter(acc_avg<20.0 & !is.na(occ_tm))
 
+Remaining_Refs = unique(AccTab_Data_mdf2$Ref)
+
+COL_REF_TBL_filt = COL_REF_TBL %>% filter(Ref %in% Remaining_Refs)
+
+COLORS_filt = COL_REF_TBL_filt$COLORS
 
 g = ggplot(AccTab_Data_mdf2, aes(acc_avg, idx, color = Ref, size = occ_tm)) + 
-  geom_point(alpha=0.5) 
+  geom_point(alpha=1) 
 g
 
 g = g + scale_x_reverse()
 
-g = g + labs(x = "accuracy (RMSE)", y = "", size = "Occupation time (min)", color = "Receiver Type")
+g = g + labs(x = "Horizontal accuracy (m)", y = "", size = "Occupation time (min)", color = "Receiver Type")
 g = g + lims(x = c(2.0, 0), y = c(0,30))
 g = g + geom_vline(aes(xintercept=1), linetype = "dashed")
+
+# g = g + scale_fill_manual(values = COLORS, labels = Refs_Unique)  #+ scale_fill_manual(values = COLORS)
+g = g + scale_color_manual(values = COLORS, labels = Refs_Unique)
+
+
 g = g + theme_minimal()
+g = g + guides(color = guide_legend(override.aes = list(size=5), reverse=T))
+# g = g + guides(color = 'none')
 g = g + theme(axis.text.y = element_blank(), legend.position = "right")
 g
 
 
 ggsave(filename = fig_ffn, plot = g, width = 16, height = 16, units = "cm", bg = "white")
 
-ggplotly(g)
 
 ```
 
